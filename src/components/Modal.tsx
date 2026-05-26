@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 export function Modal({
   title,
   children,
@@ -7,7 +9,7 @@ export function Modal({
   wide,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
   onClose: () => void;
   wide?: boolean;
 }) {

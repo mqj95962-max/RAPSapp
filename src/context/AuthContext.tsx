@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const auth = getFirebaseAuth();
-      authUnsub = onAuthStateChanged(auth, async (u) => {
+      authUnsub = onAuthStateChanged(auth, (u) => {
         profileUnsub?.();
         profileUnsub = undefined;
         setUser(u);

@@ -328,7 +328,7 @@ function EquipmentFormModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const canSave = name.trim() && equipmentId.trim() && !saving;
+  const canSave = Boolean(name.trim() && equipmentId.trim() && !saving);
 
   const save = async () => {
     if (!canSave) return;

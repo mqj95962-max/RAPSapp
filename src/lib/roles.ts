@@ -1,7 +1,5 @@
 import type { UserProfile, UserRole } from "./types";
 
-const ADMIN_ROLES: UserRole[] = ["admin", "quartermaster", "archivist"];
-
 /** Parse roles from Firestore (array or comma-separated string). */
 export function normalizeRoles(roles: unknown): UserRole[] {
   if (Array.isArray(roles)) {
@@ -25,7 +23,9 @@ export function hasRole(profile: UserProfile | null, role: UserRole): boolean {
 export function isAdmin(profile: UserProfile | null): boolean {
   if (!profile) return false;
   if (profile.isAdmin) return true;
-  return profile.roles.some((r) => ADMIN_ROLES.includes(r));
+  return profile.roles.some(
+    (r) => r === "admin" || r === "quartermaster" || r === "archivist"
+  );
 }
 
 export function defaultRoles(): UserRole[] {
