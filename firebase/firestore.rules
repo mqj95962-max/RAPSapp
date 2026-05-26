@@ -6,16 +6,23 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function userDocExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     function userDoc() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     function hasRole(role) {
-      return signedIn() && role in userDoc().data.roles;
+      return signedIn()
+        && userDocExists()
+        && userDoc().data.roles is list
+        && role in userDoc().data.roles;
     }
 
     function isAdmin() {
-      return signedIn() && (
+      return signedIn() && userDocExists() && (
         userDoc().data.get('isAdmin', false) == true ||
         hasRole('admin') ||
         hasRole('quartermaster') ||
@@ -44,11 +51,10 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // All signed-in users may read loans (needed for borrow-page availability + live sync).
+    // Only admins can update; members may only create their own pending requests.
     match /loans/{loanId} {
-      allow read: if signedIn() && (
-        isAdmin() ||
-        resource.data.userId == request.auth.uid
-      );
+      allow read: if signedIn();
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'pending';
