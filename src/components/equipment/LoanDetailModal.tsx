@@ -37,9 +37,7 @@ export function LoanDetailModal({
 }: LoanDetailModalProps) {
   const { profile } = useAuth();
   const status: LoanStatus = effectiveLoanStatus(loan, now);
-  const [pickupDate, setPickupDate] = useState(
-    loan.pickupDate ?? toDateInputValue(now)
-  );
+  const [pickupDate, setPickupDate] = useState(loan.pickupDate ?? "");
   const [returnDate, setReturnDate] = useState(loan.returnDate ?? "");
   const [note, setNote] = useState("");
   const [extensionNote, setExtensionNote] = useState("");
@@ -129,7 +127,7 @@ export function LoanDetailModal({
         {isAdmin && status === "pending" && (
           <div className="mt-4 space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
             <label className="block text-sm">
-              <span className="font-medium">Pickup date (required for approve)</span>
+              <span className="font-medium">Pickup date (required to approve)</span>
               <input
                 type="date"
                 className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
@@ -137,12 +135,9 @@ export function LoanDetailModal({
                 min={toDateInputValue(now)}
                 onChange={(e) => setPickupDate(e.target.value)}
               />
-              <p className="mt-1 text-xs text-zinc-500">
-                Defaults to today. Change if pickup is on another day.
-              </p>
             </label>
             <label className="block text-sm">
-              <span className="font-medium">Note (required for approve and deny)</span>
+              <span className="font-medium">Note (required)</span>
               <textarea
                 className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
                 rows={2}
