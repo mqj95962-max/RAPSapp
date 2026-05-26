@@ -7,7 +7,7 @@ import { AdminGuard } from "@/components/AdminGuard";
 import { SearchBar } from "@/components/SearchBar";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
 import { useAuth } from "@/context/AuthContext";
-import { useCart } from "@/context/CartContext";
+import { useExternalCart } from "@/context/CartContext";
 import { useServerTime } from "@/context/ServerTimeContext";
 import {
   createLoanRequest,
@@ -28,7 +28,7 @@ export default function ExternalLoansPage() {
 
 function ExternalLoansContent() {
   const { profile } = useAuth();
-  const { items, addItem, clear } = useCart();
+  const { items, addItem, removeItem, clear } = useExternalCart();
   const { now } = useServerTime();
   const router = useRouter();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -82,7 +82,8 @@ function ExternalLoansContent() {
   return (
     <AppShell title="External loans">
       <p className="text-sm text-zinc-500">
-        Loan equipment to non-members. Requests appear on Member loans with an EXTERNAL LOAN badge.
+        Loan equipment to non-members. Uses a separate cart from personal borrowing.
+        Requests appear on Member loans with an EXTERNAL LOAN badge.
       </p>
       <SearchBar value={search} onChange={setSearch} className="mt-4" />
       {toast && <p className="mt-2 text-sm text-red-600">{toast}</p>}
@@ -97,10 +98,19 @@ function ExternalLoansContent() {
       {items.length > 0 && (
         <div className="mt-8 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
           <h3 className="font-semibold">External loan cart ({items.length})</h3>
-          <ul className="mt-2 text-sm">
+          <ul className="mt-2 space-y-1 text-sm">
             {items.map((i) => (
-              <li key={i.id}>
-                {i.name} ({i.equipmentId})
+              <li key={i.id} className="flex items-center justify-between gap-2">
+                <span>
+                  {i.name} ({i.equipmentId})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeItem(i.id)}
+                  className="text-red-600 hover:underline"
+                >
+                  Remove
+                </button>
               </li>
             ))}
           </ul>

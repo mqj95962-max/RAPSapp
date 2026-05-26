@@ -1,4 +1,4 @@
-import type { Equipment, EquipmentAvailability, EquipmentStatus, Loan } from "./types";
+import type { Category, Equipment, EquipmentAvailability, EquipmentStatus, Loan } from "./types";
 import { effectiveLoanStatus } from "./loans";
 
 export const EQUIPMENT_STATUS_COLORS: Record<EquipmentStatus, string> = {
@@ -93,4 +93,31 @@ export function groupByCategory(
   }
 
   return grouped;
+}
+
+export type CategoryTabId = "all" | "uncategorized" | string;
+
+export function filterEquipmentByCategoryTab(
+  equipment: Equipment[],
+  categories: Category[],
+  tabId: CategoryTabId
+): Equipment[] {
+  if (tabId === "all") return equipment;
+
+  const filed = new Set(categories.flatMap((c) => c.equipmentIds));
+
+  if (tabId === "uncategorized") {
+    return equipment.filter((e) => !filed.has(e.id));
+  }
+
+  const cat = categories.find((c) => c.id === tabId);
+  if (!cat) return equipment;
+  return equipment.filter((e) => cat.equipmentIds.includes(e.id));
+}
+
+export function categoriesForEquipment(
+  equipmentId: string,
+  categories: Category[]
+): Category[] {
+  return categories.filter((c) => c.equipmentIds.includes(equipmentId));
 }

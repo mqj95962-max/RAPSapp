@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { SearchBar } from "@/components/SearchBar";
 import { useAuth } from "@/context/AuthContext";
-import { useCart } from "@/context/CartContext";
+import { useMemberCart } from "@/context/CartContext";
 import { useServerTime } from "@/context/ServerTimeContext";
 import { createLoanRequest } from "@/lib/firestore";
 import { LOAN_PERIOD_DAYS } from "@/lib/time";
@@ -13,7 +13,7 @@ import { addDays, format } from "date-fns";
 
 export default function CartPage() {
   const { profile } = useAuth();
-  const { items, removeItem, clear } = useCart();
+  const { items, removeItem, clear } = useMemberCart();
   const { now } = useServerTime();
   const router = useRouter();
   const [purpose, setPurpose] = useState("");

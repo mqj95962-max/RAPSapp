@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { SearchBar } from "@/components/SearchBar";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
-import { useCart } from "@/context/CartContext";
+import { useMemberCart } from "@/context/CartContext";
 import { useServerTime } from "@/context/ServerTimeContext";
 import { fetchAllLoans, fetchCategories, fetchEquipment } from "@/lib/firestore";
 import { groupByCategory, isBorrowable } from "@/lib/equipment";
@@ -13,7 +13,7 @@ import type { Equipment, Loan } from "@/lib/types";
 import type { Category } from "@/lib/types";
 
 export default function BorrowPage() {
-  const { addItem } = useCart();
+  const { addItem, items } = useMemberCart();
   const { now } = useServerTime();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -48,7 +48,7 @@ export default function BorrowPage() {
           href="/equipment/cart"
           className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
         >
-          View cart
+          View cart{items.length > 0 ? ` (${items.length})` : ""}
         </Link>
       </div>
       <SearchBar value={search} onChange={setSearch} />
