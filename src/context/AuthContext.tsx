@@ -53,9 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
     try {
       const auth = getFirebaseAuth();
-      const unsub = onAuthStateChanged(auth, async (u) => {
+      unsubscribe = onAuthStateChanged(auth, async (u) => {
         setUser(u);
         if (u) {
           const p = await getUserProfile(u.uid);
@@ -71,7 +73,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setInitError(null);
         setLoading(false);
       });
-      return () => unsub();
     } catch (e) {
       setUser(null);
       setProfile(null);
@@ -79,8 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         e instanceof Error ? e.message : "Failed to initialize Firebase."
       );
       setLoading(false);
-      return;
     }
+
+    return () => unsubscribe?.();
   }, []);
 
   const signInWithGoogle = useCallback(async () => {

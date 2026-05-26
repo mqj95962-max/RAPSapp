@@ -16,8 +16,9 @@ export default function AddEventPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const canSubmit =
-    title.trim() && eventDate && eventTime && !saving;
+  const canSubmit = Boolean(
+    title.trim() && eventDate && eventTime && !saving
+  );
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

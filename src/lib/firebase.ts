@@ -23,18 +23,34 @@ function getFirebaseConfig(): {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   };
 
+  const {
+    apiKey,
+    authDomain,
+    projectId,
+    storageBucket,
+    messagingSenderId,
+    appId,
+  } = config;
+
   if (
-    !config.apiKey ||
-    !config.authDomain ||
-    !config.projectId ||
-    !config.storageBucket ||
-    !config.messagingSenderId ||
-    !config.appId
+    !apiKey ||
+    !authDomain ||
+    !projectId ||
+    !storageBucket ||
+    !messagingSenderId ||
+    !appId
   ) {
     return null;
   }
 
-  return config;
+  return {
+    apiKey,
+    authDomain,
+    projectId,
+    storageBucket,
+    messagingSenderId,
+    appId,
+  };
 }
 
 function createFirebase(): FirebaseBundle {
