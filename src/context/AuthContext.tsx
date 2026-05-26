@@ -23,6 +23,7 @@ interface AuthContextValue {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
+  initError: string | null;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
 
   const refreshProfile = useCallback(async () => {
     if (!user) {
@@ -51,29 +53,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        const p = await getUserProfile(u.uid);
-        if (!p && u.email) {
-          await upsertUserProfile(u.uid, u.email, {});
-          setProfile(await getUserProfile(u.uid));
+    try {
+      const auth = getFirebaseAuth();
+      const unsub = onAuthStateChanged(auth, async (u) => {
+        setUser(u);
+        if (u) {
+          const p = await getUserProfile(u.uid);
+          if (!p && u.email) {
+            await upsertUserProfile(u.uid, u.email, {});
+            setProfile(await getUserProfile(u.uid));
+          } else {
+            setProfile(p);
+          }
         } else {
-          setProfile(p);
+          setProfile(null);
         }
-      } else {
-        setProfile(null);
-      }
+        setInitError(null);
+        setLoading(false);
+      });
+      return () => unsub();
+    } catch (e) {
+      setUser(null);
+      setProfile(null);
+      setInitError(
+        e instanceof Error ? e.message : "Failed to initialize Firebase."
+      );
       setLoading(false);
-    });
-    return () => unsub();
+      return;
+    }
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    const auth = getFirebaseAuth();
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    setInitError(null);
+    try {
+      const auth = getFirebaseAuth();
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (e) {
+      setInitError(e instanceof Error ? e.message : "Sign-in failed.");
+      throw e;
+    }
   }, []);
 
   const signOut = useCallback(async () => {
@@ -99,12 +118,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       profile,
       loading,
+      initError,
       signInWithGoogle,
       signOut,
       refreshProfile,
       saveProfile,
     }),
-    [user, profile, loading, signInWithGoogle, signOut, refreshProfile, saveProfile]
+    [
+      user,
+      profile,
+      loading,
+      initError,
+      signInWithGoogle,
+      signOut,
+      refreshProfile,
+      saveProfile,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

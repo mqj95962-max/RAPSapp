@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 export default function SignInPage() {
-  const { user, loading, signInWithGoogle } = useAuth();
+  const { user, loading, signInWithGoogle, initError } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -39,6 +39,12 @@ export default function SignInPage() {
         >
           Sign in with Google
         </button>
+        {initError && (
+          <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-left text-sm text-red-100">
+            <p className="font-semibold">Firebase not ready</p>
+            <p className="mt-1">{initError}</p>
+          </div>
+        )}
         <p className="mt-6 text-xs text-zinc-500">
           New accounts default to member. Teachers promote quartermaster / archivist roles in Firebase.
         </p>
