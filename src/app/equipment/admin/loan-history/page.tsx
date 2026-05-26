@@ -5,7 +5,8 @@ import { AppShell } from "@/components/AppShell";
 import { AdminGuard } from "@/components/AdminGuard";
 import { SearchBar } from "@/components/SearchBar";
 import { useServerTime } from "@/context/ServerTimeContext";
-import { LiveSyncBanner, useAllLoansLive } from "@/hooks/useLiveData";
+import { LiveSyncBanner } from "@/components/LiveSyncBanner";
+import { useAllLoansLive } from "@/hooks/useLiveData";
 import { effectiveLoanStatus, LOAN_STATUS_LABELS } from "@/lib/loans";
 import { formatTimestamp } from "@/lib/time";
 

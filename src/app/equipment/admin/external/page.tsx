@@ -9,8 +9,8 @@ import { EquipmentList } from "@/components/equipment/EquipmentList";
 import { useAuth } from "@/context/AuthContext";
 import { useExternalCart } from "@/context/CartContext";
 import { useServerTime } from "@/context/ServerTimeContext";
+import { LiveSyncBanner } from "@/components/LiveSyncBanner";
 import {
-  LiveSyncBanner,
   useAllLoansLive,
   useCategoriesLive,
   useEquipmentLive,

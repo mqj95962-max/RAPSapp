@@ -7,7 +7,8 @@ import { SearchBar } from "@/components/SearchBar";
 import { LoanBadge } from "@/components/equipment/LoanBadge";
 import { LoanDetailModal } from "@/components/equipment/LoanDetailModal";
 import { useServerTime } from "@/context/ServerTimeContext";
-import { LiveSyncBanner, useAllLoansLive } from "@/hooks/useLiveData";
+import { LiveSyncBanner } from "@/components/LiveSyncBanner";
+import { useAllLoansLive } from "@/hooks/useLiveData";
 import { effectiveLoanStatus } from "@/lib/loans";
 import type { Loan, LoanStatus } from "@/lib/types";
 

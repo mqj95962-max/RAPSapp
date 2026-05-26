@@ -12,11 +12,8 @@ import {
   filterEquipmentByCategoryTab,
   type CategoryTabId,
 } from "@/lib/equipment";
-import {
-  LiveSyncBanner,
-  useCategoriesLive,
-  useEquipmentLive,
-} from "@/hooks/useLiveData";
+import { LiveSyncBanner } from "@/components/LiveSyncBanner";
+import { useCategoriesLive, useEquipmentLive } from "@/hooks/useLiveData";
 import { saveCategory, saveEquipment, softDeleteEquipment } from "@/lib/firestore";
 import type { Category, Equipment, EquipmentStatus } from "@/lib/types";
 

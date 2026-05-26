@@ -7,8 +7,8 @@ import { SearchBar } from "@/components/SearchBar";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
 import { useMemberCart } from "@/context/CartContext";
 import { useServerTime } from "@/context/ServerTimeContext";
+import { LiveSyncBanner } from "@/components/LiveSyncBanner";
 import {
-  LiveSyncBanner,
   useAllLoansLive,
   useCategoriesLive,
   useEquipmentLive,

@@ -7,7 +7,8 @@ import { LoanBadge } from "@/components/equipment/LoanBadge";
 import { LoanDetailModal } from "@/components/equipment/LoanDetailModal";
 import { useAuth } from "@/context/AuthContext";
 import { useServerTime } from "@/context/ServerTimeContext";
-import { LiveSyncBanner, useUserLoansLive } from "@/hooks/useLiveData";
+import { LiveSyncBanner } from "@/components/LiveSyncBanner";
+import { useUserLoansLive } from "@/hooks/useLiveData";
 import { effectiveLoanStatus } from "@/lib/loans";
 import type { Loan, LoanStatus } from "@/lib/types";
 
