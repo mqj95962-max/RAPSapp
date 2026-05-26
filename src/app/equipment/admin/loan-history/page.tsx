@@ -1,14 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AdminGuard } from "@/components/AdminGuard";
 import { SearchBar } from "@/components/SearchBar";
 import { useServerTime } from "@/context/ServerTimeContext";
-import { fetchAllLoans } from "@/lib/firestore";
+import { LiveSyncBanner, useAllLoansLive } from "@/hooks/useLiveData";
 import { effectiveLoanStatus, LOAN_STATUS_LABELS } from "@/lib/loans";
 import { formatTimestamp } from "@/lib/time";
-import type { Loan } from "@/lib/types";
 
 export default function AdminLoanHistoryPage() {
   return (
@@ -20,17 +19,13 @@ export default function AdminLoanHistoryPage() {
 
 function AdminLoanHistoryContent() {
   const { now } = useServerTime();
-  const [loans, setLoans] = useState<Loan[]>([]);
+  const { loans: allLoans, error } = useAllLoansLive();
   const [search, setSearch] = useState("");
 
-  const load = useCallback(async () => {
-    const data = await fetchAllLoans();
-    setLoans(data.filter((l) => effectiveLoanStatus(l, now) === "returned"));
-  }, [now]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const loans = useMemo(
+    () => allLoans.filter((l) => effectiveLoanStatus(l, now) === "returned"),
+    [allLoans, now]
+  );
 
   const q = search.trim().toLowerCase();
   const filtered = loans.filter(
@@ -47,6 +42,7 @@ function AdminLoanHistoryContent() {
 
   return (
     <AppShell title="Loan history (all members)">
+      <LiveSyncBanner error={error} />
       <SearchBar value={search} onChange={setSearch} placeholder="Search member, phone, equipment…" />
       <ul className="mt-4 space-y-3">
         {filtered.map((loan) => (

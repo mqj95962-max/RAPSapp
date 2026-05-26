@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { AdminGuard } from "@/components/AdminGuard";
@@ -10,13 +10,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useExternalCart } from "@/context/CartContext";
 import { useServerTime } from "@/context/ServerTimeContext";
 import {
-  createLoanRequest,
-  fetchAllLoans,
-  fetchCategories,
-  fetchEquipment,
-} from "@/lib/firestore";
+  LiveSyncBanner,
+  useAllLoansLive,
+  useCategoriesLive,
+  useEquipmentLive,
+} from "@/hooks/useLiveData";
+import { createLoanRequest } from "@/lib/firestore";
 import { groupByCategory, isBorrowable } from "@/lib/equipment";
-import type { Category, Equipment, Loan } from "@/lib/types";
 
 export default function ExternalLoansPage() {
   return (
@@ -31,28 +31,18 @@ function ExternalLoansContent() {
   const { items, addItem, removeItem, clear } = useExternalCart();
   const { now } = useServerTime();
   const router = useRouter();
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loans, setLoans] = useState<Loan[]>([]);
+  const { equipment: allEquipment } = useEquipmentLive();
+  const { categories, error: catError } = useCategoriesLive();
+  const { loans, error: loanError } = useAllLoansLive();
   const [search, setSearch] = useState("");
   const [details, setDetails] = useState("");
   const [toast, setToast] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const load = useCallback(async () => {
-    const [eq, cats, allLoans] = await Promise.all([
-      fetchEquipment(),
-      fetchCategories(),
-      fetchAllLoans(),
-    ]);
-    setEquipment(eq.filter((e) => isBorrowable(e.status)));
-    setCategories(cats);
-    setLoans(allLoans);
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const equipment = useMemo(
+    () => allEquipment.filter((e) => isBorrowable(e.status)),
+    [allEquipment]
+  );
 
   const submit = async () => {
     if (!profile || !items.length || !details.trim()) return;
@@ -74,6 +64,8 @@ function ExternalLoansContent() {
       clear();
       setDetails("");
       router.push("/equipment/admin/member-loans");
+    } catch {
+      setToast("Could not submit external loan. Check Firestore rules.");
     } finally {
       setSubmitting(false);
     }
@@ -83,8 +75,9 @@ function ExternalLoansContent() {
     <AppShell title="External loans">
       <p className="text-sm text-zinc-500">
         Loan equipment to non-members. Uses a separate cart from personal borrowing.
-        Requests appear on Member loans with an EXTERNAL LOAN badge.
+        Equipment list syncs live for all accounts.
       </p>
+      <LiveSyncBanner error={catError || loanError} />
       <SearchBar value={search} onChange={setSearch} className="mt-4" />
       {toast && <p className="mt-2 text-sm text-red-600">{toast}</p>}
       <EquipmentList

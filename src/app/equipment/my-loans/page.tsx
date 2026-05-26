@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SearchBar } from "@/components/SearchBar";
 import { LoanBadge } from "@/components/equipment/LoanBadge";
 import { LoanDetailModal } from "@/components/equipment/LoanDetailModal";
 import { useAuth } from "@/context/AuthContext";
 import { useServerTime } from "@/context/ServerTimeContext";
-import { fetchUserLoans } from "@/lib/firestore";
+import { LiveSyncBanner, useUserLoansLive } from "@/hooks/useLiveData";
 import { effectiveLoanStatus } from "@/lib/loans";
 import type { Loan, LoanStatus } from "@/lib/types";
 
@@ -22,24 +22,18 @@ const ACTIVE_STATUSES: LoanStatus[] = [
 export default function MyLoansPage() {
   const { profile } = useAuth();
   const { now } = useServerTime();
-  const [loans, setLoans] = useState<Loan[]>([]);
+  const { loans: userLoans, loading, error } = useUserLoansLive(profile?.uid);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Loan | null>(null);
 
-  const load = useCallback(async () => {
-    if (!profile) return;
-    const data = await fetchUserLoans(profile.uid);
-    setLoans(
-      data.filter((l) => {
+  const loans = useMemo(
+    () =>
+      userLoans.filter((l) => {
         const s = effectiveLoanStatus(l, now);
         return ACTIVE_STATUSES.includes(s);
-      })
-    );
-  }, [profile, now]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+      }),
+    [userLoans, now]
+  );
 
   const q = search.trim().toLowerCase();
   const filtered = loans.filter(
@@ -58,46 +52,51 @@ export default function MyLoansPage() {
 
   return (
     <AppShell title="My loans">
+      <LiveSyncBanner error={error} />
       <SearchBar value={search} onChange={setSearch} />
-      <div className="mt-6 space-y-8">
-        {(
-          [
-            ["pending", "Pending"],
-            ["approved", "Waiting pickup"],
-            ["active", "Active"],
-            ["overdue", "Overdue"],
-            ["denied", "Denied"],
-          ] as const
-        ).map(([status, label]) => {
-          const group = byStatus(status);
-          if (!group.length) return null;
-          return (
-            <section key={status}>
-              <h3 className="mb-2 text-sm font-semibold text-zinc-500">{label}</h3>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {group.map((loan) => (
-                  <LoanBadge
-                    key={loan.id}
-                    loan={loan}
-                    now={now}
-                    onClick={() => setSelected(loan)}
-                  />
-                ))}
-              </div>
-            </section>
-          );
-        })}
-        {!filtered.length && (
-          <p className="text-sm text-zinc-500">No active loan requests.</p>
-        )}
-      </div>
+      {loading ? (
+        <p className="mt-4 text-sm text-zinc-500">Loading your loans…</p>
+      ) : (
+        <div className="mt-6 space-y-8">
+          {(
+            [
+              ["pending", "Pending"],
+              ["approved", "Waiting pickup"],
+              ["active", "Active"],
+              ["overdue", "Overdue"],
+              ["denied", "Denied"],
+            ] as const
+          ).map(([status, label]) => {
+            const group = byStatus(status);
+            if (!group.length) return null;
+            return (
+              <section key={status}>
+                <h3 className="mb-2 text-sm font-semibold text-zinc-500">{label}</h3>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {group.map((loan) => (
+                    <LoanBadge
+                      key={loan.id}
+                      loan={loan}
+                      now={now}
+                      onClick={() => setSelected(loan)}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+          {!filtered.length && (
+            <p className="text-sm text-zinc-500">No active loan requests.</p>
+          )}
+        </div>
+      )}
       {selected && (
         <LoanDetailModal
           loan={selected}
           now={now}
           isAdmin={false}
           onClose={() => setSelected(null)}
-          onUpdated={load}
+          onUpdated={() => setSelected(null)}
         />
       )}
     </AppShell>

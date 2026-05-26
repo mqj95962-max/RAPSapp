@@ -53,8 +53,12 @@ export default function CartPage() {
       });
       clear();
       router.push("/equipment/my-loans");
-    } catch {
-      setError("Could not submit loan request.");
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Could not submit loan request. Check you are signed in and try again."
+      );
     } finally {
       setSubmitting(false);
     }

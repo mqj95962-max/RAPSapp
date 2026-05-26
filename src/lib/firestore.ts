@@ -6,10 +6,12 @@ import {
   setDoc,
   addDoc,
   updateDoc,
+  onSnapshot,
   query,
   where,
   orderBy,
   type DocumentData,
+  type Unsubscribe,
 } from "firebase/firestore";
 import { getDb } from "./firebase";
 import type {
@@ -81,10 +83,7 @@ function mapEvent(id: string, data: DocumentData): ClubEvent {
   };
 }
 
-export async function getUserProfile(uid: string): Promise<UserProfile | null> {
-  const snap = await getDoc(doc(getDb(), "users", uid));
-  if (!snap.exists()) return null;
-  const data = snap.data();
+function mapUserProfile(uid: string, data: DocumentData): UserProfile {
   return {
     uid,
     email: data.email ?? "",
@@ -96,6 +95,30 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     createdAt: data.createdAt ?? 0,
     updatedAt: data.updatedAt ?? 0,
   };
+}
+
+export function subscribeUserProfile(
+  uid: string,
+  callback: (profile: UserProfile | null) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  return onSnapshot(
+    doc(getDb(), "users", uid),
+    (snap) => {
+      if (!snap.exists()) {
+        callback(null);
+        return;
+      }
+      callback(mapUserProfile(uid, snap.data()));
+    },
+    (err) => onError?.(err)
+  );
+}
+
+export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  const snap = await getDoc(doc(getDb(), "users", uid));
+  if (!snap.exists()) return null;
+  return mapUserProfile(uid, snap.data());
 }
 
 export async function upsertUserProfile(
@@ -122,12 +145,40 @@ export async function upsertUserProfile(
   }
 }
 
+function sortEquipment(items: Equipment[]): Equipment[] {
+  return [...items].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function sortCategories(items: Category[]): Category[] {
+  return [...items].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function subscribeEquipment(
+  callback: (items: Equipment[]) => void,
+  options?: { includeDeleted?: boolean; onError?: (error: Error) => void }
+): Unsubscribe {
+  const includeDeleted = options?.includeDeleted ?? false;
+  return onSnapshot(
+    collection(getDb(), "equipment"),
+    (snap) => {
+      const items = sortEquipment(
+        snap.docs
+          .map((d) => mapEquipment(d.id, d.data()))
+          .filter((e) => includeDeleted || !e.deletedAt)
+      );
+      callback(items);
+    },
+    (err) => options?.onError?.(err)
+  );
+}
+
 export async function fetchEquipment(includeDeleted = false): Promise<Equipment[]> {
   const snap = await getDocs(collection(getDb(), "equipment"));
-  return snap.docs
-    .map((d) => mapEquipment(d.id, d.data()))
-    .filter((e) => includeDeleted || !e.deletedAt)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  return sortEquipment(
+    snap.docs
+      .map((d) => mapEquipment(d.id, d.data()))
+      .filter((e) => includeDeleted || !e.deletedAt)
+  );
 }
 
 export async function fetchPastEquipment(): Promise<Equipment[]> {
@@ -174,16 +225,37 @@ export async function softDeleteEquipment(id: string): Promise<void> {
   });
 }
 
+export function subscribeCategories(
+  callback: (items: Category[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  return onSnapshot(
+    collection(getDb(), "categories"),
+    (snap) => {
+      const items = sortCategories(
+        snap.docs.map((d) => ({
+          id: d.id,
+          name: d.data().name ?? "",
+          equipmentIds: d.data().equipmentIds ?? [],
+          createdAt: d.data().createdAt ?? 0,
+        }))
+      );
+      callback(items);
+    },
+    (err) => onError?.(err)
+  );
+}
+
 export async function fetchCategories(): Promise<Category[]> {
   const snap = await getDocs(collection(getDb(), "categories"));
-  return snap.docs
-    .map((d) => ({
+  return sortCategories(
+    snap.docs.map((d) => ({
       id: d.id,
       name: d.data().name ?? "",
       equipmentIds: d.data().equipmentIds ?? [],
       createdAt: d.data().createdAt ?? 0,
     }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  );
 }
 
 export async function saveCategory(
@@ -203,6 +275,19 @@ export async function saveCategory(
     createdAt: now,
   });
   return ref.id;
+}
+
+export function subscribeAllLoans(
+  callback: (loans: Loan[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  return onSnapshot(
+    query(collection(getDb(), "loans"), orderBy("createdAt", "desc")),
+    (snap) => {
+      callback(snap.docs.map((d) => mapLoan(d.id, d.data())));
+    },
+    (err) => onError?.(err)
+  );
 }
 
 export async function fetchAllLoans(): Promise<Loan[]> {

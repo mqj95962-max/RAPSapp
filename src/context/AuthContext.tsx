@@ -16,7 +16,11 @@ import {
   type User,
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
-import { getUserProfile, upsertUserProfile } from "@/lib/firestore";
+import {
+  getUserProfile,
+  subscribeUserProfile,
+  upsertUserProfile,
+} from "@/lib/firestore";
 import type { UserProfile } from "@/lib/types";
 
 interface AuthContextValue {
@@ -53,25 +57,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
+    let authUnsub: (() => void) | undefined;
+    let profileUnsub: (() => void) | undefined;
 
     try {
       const auth = getFirebaseAuth();
-      unsubscribe = onAuthStateChanged(auth, async (u) => {
+      authUnsub = onAuthStateChanged(auth, async (u) => {
+        profileUnsub?.();
+        profileUnsub = undefined;
         setUser(u);
-        if (u) {
-          const p = await getUserProfile(u.uid);
-          if (!p && u.email) {
-            await upsertUserProfile(u.uid, u.email, {});
-            setProfile(await getUserProfile(u.uid));
-          } else {
-            setProfile(p);
-          }
-        } else {
+
+        if (!u) {
           setProfile(null);
+          setInitError(null);
+          setLoading(false);
+          return;
         }
-        setInitError(null);
-        setLoading(false);
+
+        profileUnsub = subscribeUserProfile(
+          u.uid,
+          async (p) => {
+            if (!p && u.email) {
+              await upsertUserProfile(u.uid, u.email, {});
+              return;
+            }
+            setProfile(p);
+            setInitError(null);
+            setLoading(false);
+          },
+          (err) => {
+            setInitError(err.message);
+            setLoading(false);
+          }
+        );
       });
     } catch (e) {
       setUser(null);
@@ -82,7 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
 
-    return () => unsubscribe?.();
+    return () => {
+      authUnsub?.();
+      profileUnsub?.();
+    };
   }, []);
 
   const signInWithGoogle = useCallback(async () => {

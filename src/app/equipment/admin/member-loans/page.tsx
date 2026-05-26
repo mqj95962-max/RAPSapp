@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AdminGuard } from "@/components/AdminGuard";
 import { SearchBar } from "@/components/SearchBar";
 import { LoanBadge } from "@/components/equipment/LoanBadge";
 import { LoanDetailModal } from "@/components/equipment/LoanDetailModal";
 import { useServerTime } from "@/context/ServerTimeContext";
-import { fetchAllLoans } from "@/lib/firestore";
+import { LiveSyncBanner, useAllLoansLive } from "@/hooks/useLiveData";
 import { effectiveLoanStatus } from "@/lib/loans";
 import type { Loan, LoanStatus } from "@/lib/types";
 
@@ -28,18 +28,14 @@ export default function MemberLoansPage() {
 
 function MemberLoansContent() {
   const { now } = useServerTime();
-  const [loans, setLoans] = useState<Loan[]>([]);
+  const { loans: allLoans, loading, error } = useAllLoansLive();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Loan | null>(null);
 
-  const load = useCallback(async () => {
-    const data = await fetchAllLoans();
-    setLoans(data.filter((l) => effectiveLoanStatus(l, now) !== "returned"));
-  }, [now]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const loans = useMemo(
+    () => allLoans.filter((l) => effectiveLoanStatus(l, now) !== "returned"),
+    [allLoans, now]
+  );
 
   const q = search.trim().toLowerCase();
   const filtered = loans.filter(
@@ -56,37 +52,52 @@ function MemberLoansContent() {
 
   return (
     <AppShell title="Member loans">
-      <SearchBar value={search} onChange={setSearch} placeholder="Search name, phone, equipment…" />
-      <div className="mt-6 space-y-8">
-        {GROUPS.map(({ status, label }) => {
-          const group = filtered.filter(
-            (l) => effectiveLoanStatus(l, now) === status
-          );
-          if (!group.length) return null;
-          return (
-            <section key={status}>
-              <h3 className="mb-2 text-sm font-semibold text-zinc-500">{label}</h3>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {group.map((loan) => (
-                  <LoanBadge
-                    key={loan.id}
-                    loan={loan}
-                    now={now}
-                    onClick={() => setSelected(loan)}
-                  />
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+      <p className="text-sm text-zinc-500">
+        Loan requests from all members update live — no refresh needed.
+      </p>
+      <LiveSyncBanner error={error} />
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Search name, phone, equipment…"
+      />
+      {loading ? (
+        <p className="mt-4 text-sm text-zinc-500">Loading loans…</p>
+      ) : (
+        <div className="mt-6 space-y-8">
+          {GROUPS.map(({ status, label }) => {
+            const group = filtered.filter(
+              (l) => effectiveLoanStatus(l, now) === status
+            );
+            if (!group.length) return null;
+            return (
+              <section key={status}>
+                <h3 className="mb-2 text-sm font-semibold text-zinc-500">{label}</h3>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {group.map((loan) => (
+                    <LoanBadge
+                      key={loan.id}
+                      loan={loan}
+                      now={now}
+                      onClick={() => setSelected(loan)}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+          {!filtered.length && !loading && (
+            <p className="text-sm text-zinc-500">No active loan requests.</p>
+          )}
+        </div>
+      )}
       {selected && (
         <LoanDetailModal
           loan={selected}
           now={now}
           isAdmin
           onClose={() => setSelected(null)}
-          onUpdated={load}
+          onUpdated={() => setSelected(null)}
         />
       )}
     </AppShell>

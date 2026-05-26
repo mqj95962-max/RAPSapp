@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AdminGuard } from "@/components/AdminGuard";
 import { Modal } from "@/components/Modal";
@@ -13,12 +13,11 @@ import {
   type CategoryTabId,
 } from "@/lib/equipment";
 import {
-  fetchCategories,
-  fetchEquipment,
-  saveCategory,
-  saveEquipment,
-  softDeleteEquipment,
-} from "@/lib/firestore";
+  LiveSyncBanner,
+  useCategoriesLive,
+  useEquipmentLive,
+} from "@/hooks/useLiveData";
+import { saveCategory, saveEquipment, softDeleteEquipment } from "@/lib/firestore";
 import type { Category, Equipment, EquipmentStatus } from "@/lib/types";
 
 const STATUSES: EquipmentStatus[] = ["working", "faulty", "broken", "missing"];
@@ -32,8 +31,8 @@ export default function ManageEquipmentPage() {
 }
 
 function ManageContent() {
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { equipment, error: eqError } = useEquipmentLive();
+  const { categories, error: catError } = useCategoriesLive();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<CategoryTabId>("all");
   const [editMode, setEditMode] = useState(false);
@@ -46,16 +45,6 @@ function ManageContent() {
   const [detailItem, setDetailItem] = useState<Equipment | null>(null);
   const [fileTarget, setFileTarget] = useState<Equipment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Equipment | null>(null);
-
-  const load = useCallback(async () => {
-    const [eq, cats] = await Promise.all([fetchEquipment(), fetchCategories()]);
-    setEquipment(eq);
-    setCategories(cats);
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const q = search.trim().toLowerCase();
   const filtered = useMemo(() => {
@@ -91,11 +80,11 @@ function ManageContent() {
     const ids = [...new Set([...cat.equipmentIds, item.id])];
     await saveCategory({ id: cat.id, name: cat.name, equipmentIds: ids });
     setFileTarget(null);
-    load();
   };
 
   return (
     <AppShell title="Manage equipment">
+      <LiveSyncBanner error={eqError || catError} />
       <SearchBar value={search} onChange={setSearch} />
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -240,14 +229,14 @@ function ManageContent() {
           mode={equipmentForm.mode}
           item={equipmentForm.mode === "edit" ? equipmentForm.item : undefined}
           onClose={() => setEquipmentForm(null)}
-          onSaved={load}
+          onSaved={() => {}}
         />
       )}
 
       {categoryFormOpen && (
         <CategoryFormModal
           onClose={() => setCategoryFormOpen(false)}
-          onSaved={load}
+          onSaved={() => {}}
         />
       )}
 
@@ -255,7 +244,7 @@ function ManageContent() {
         <StatusModal
           item={statusItem}
           onClose={() => setStatusItem(null)}
-          onSaved={load}
+          onSaved={() => {}}
         />
       )}
 
@@ -304,7 +293,6 @@ function ManageContent() {
               onClick={async () => {
                 await softDeleteEquipment(deleteTarget.id);
                 setDeleteTarget(null);
-                load();
               }}
               className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-medium text-white"
             >
