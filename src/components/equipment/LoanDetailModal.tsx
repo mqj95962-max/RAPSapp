@@ -13,6 +13,13 @@ import { effectiveLoanStatus, LOAN_STATUS_LABELS } from "@/lib/loans";
 import { formatDate, formatTimestamp } from "@/lib/time";
 import { useAuth } from "@/context/AuthContext";
 
+function toDateInputValue(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 interface LoanDetailModalProps {
   loan: Loan;
   now: Date;
@@ -30,12 +37,17 @@ export function LoanDetailModal({
 }: LoanDetailModalProps) {
   const { profile } = useAuth();
   const status: LoanStatus = effectiveLoanStatus(loan, now);
-  const [pickupDate, setPickupDate] = useState(loan.pickupDate ?? "");
+  const [pickupDate, setPickupDate] = useState(
+    loan.pickupDate ?? toDateInputValue(now)
+  );
   const [returnDate, setReturnDate] = useState(loan.returnDate ?? "");
   const [note, setNote] = useState("");
   const [extensionNote, setExtensionNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  const canApprove = Boolean(pickupDate && note.trim() && !busy);
+  const canDeny = Boolean(note.trim() && !busy);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -117,16 +129,20 @@ export function LoanDetailModal({
         {isAdmin && status === "pending" && (
           <div className="mt-4 space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
             <label className="block text-sm">
-              <span className="font-medium">Pickup date (required to approve)</span>
+              <span className="font-medium">Pickup date (required for approve)</span>
               <input
                 type="date"
                 className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
                 value={pickupDate}
+                min={toDateInputValue(now)}
                 onChange={(e) => setPickupDate(e.target.value)}
               />
+              <p className="mt-1 text-xs text-zinc-500">
+                Defaults to today. Change if pickup is on another day.
+              </p>
             </label>
             <label className="block text-sm">
-              <span className="font-medium">Note (required)</span>
+              <span className="font-medium">Note (required for approve and deny)</span>
               <textarea
                 className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
                 rows={2}
@@ -135,26 +151,29 @@ export function LoanDetailModal({
                 placeholder="Reason for approval or denial"
               />
             </label>
+            {!canApprove && note.trim() && !pickupDate && (
+              <p className="text-xs text-amber-700">Select a pickup date to enable Approve.</p>
+            )}
             <div className="flex gap-2">
               <button
                 type="button"
-                disabled={busy || !pickupDate || !note.trim()}
+                disabled={!canApprove}
                 onClick={() =>
                   run(() =>
                     approveLoan(loan.id, pickupDate, note.trim(), profile!.uid)
                   )
                 }
-                className="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
+                className="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Approve
               </button>
               <button
                 type="button"
-                disabled={busy || !note.trim()}
+                disabled={!canDeny}
                 onClick={() =>
                   run(() => denyLoan(loan.id, note.trim(), profile!.uid))
                 }
-                className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
+                className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Deny
               </button>
