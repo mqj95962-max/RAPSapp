@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AuthGuard } from "@/components/AuthGuard";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/context/AuthContext";
-import { isArchivist, isQuartermaster } from "@/lib/roles";
+import { isAdmin } from "@/lib/roles";
 import { useServerTime } from "@/context/ServerTimeContext";
 
 export default function HomePage() {
@@ -18,8 +18,7 @@ export default function HomePage() {
 function HomeContent() {
   const { profile } = useAuth();
   const { now } = useServerTime();
-  const qm = isQuartermaster(profile);
-  const arch = isArchivist(profile);
+  const admin = isAdmin(profile);
 
   return (
     <AppShell title="Home">
@@ -34,7 +33,7 @@ function HomeContent() {
           <NavCard href="/equipment/cart" label="View cart" />
           <NavCard href="/equipment/my-loans" label="My loans" />
           <NavCard href="/equipment/loan-history" label="Loan history" />
-          {qm && (
+          {admin && (
             <>
               <NavCard href="/equipment/admin/member-loans" label="Member loans" admin />
               <NavCard href="/equipment/admin/manage" label="Manage equipment" admin />
@@ -52,7 +51,7 @@ function HomeContent() {
           <NavCard href="/events/add" label="Add event" />
           <NavCard href="/events/my-events" label="My events" />
           <NavCard href="/events/my-hours" label="My hours" />
-          {arch && (
+          {admin && (
             <NavCard href="/events/admin/coverage" label="Member events coverage" admin />
           )}
         </div>

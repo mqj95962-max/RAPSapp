@@ -11,7 +11,7 @@ import type { ClubEvent } from "@/lib/types";
 
 export default function MemberEventsCoveragePage() {
   return (
-    <AdminGuard role="archivist">
+    <AdminGuard>
       <CoverageContent />
     </AdminGuard>
   );
@@ -75,7 +75,7 @@ function CoverageContent() {
           event={selected}
           onClose={() => setSelected(null)}
           onUpdated={load}
-          archivistId={profile?.uid ?? ""}
+          adminId={profile?.uid ?? ""}
         />
       )}
     </AppShell>
@@ -86,19 +86,19 @@ function ArchivistEventModal({
   event,
   onClose,
   onUpdated,
-  archivistId,
+  adminId,
 }: {
   event: ClubEvent;
   onClose: () => void;
   onUpdated: () => void;
-  archivistId: string;
+  adminId: string;
 }) {
   const [busy, setBusy] = useState(false);
 
   const confirm = async () => {
     setBusy(true);
     try {
-      await confirmEventPhotos(event.id, archivistId);
+      await confirmEventPhotos(event.id, adminId);
       onUpdated();
       onClose();
     } finally {

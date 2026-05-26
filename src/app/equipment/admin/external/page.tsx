@@ -20,7 +20,7 @@ import type { Category, Equipment, Loan } from "@/lib/types";
 
 export default function ExternalLoansPage() {
   return (
-    <AdminGuard role="quartermaster">
+    <AdminGuard>
       <ExternalLoansContent />
     </AdminGuard>
   );

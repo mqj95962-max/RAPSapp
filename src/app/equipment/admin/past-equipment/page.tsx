@@ -10,7 +10,7 @@ import type { Equipment } from "@/lib/types";
 
 export default function PastEquipmentPage() {
   return (
-    <AdminGuard role="quartermaster">
+    <AdminGuard>
       <PastEquipmentContent />
     </AdminGuard>
   );

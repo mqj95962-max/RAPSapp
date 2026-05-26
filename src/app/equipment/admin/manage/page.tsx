@@ -21,7 +21,7 @@ const STATUSES: EquipmentStatus[] = ["working", "faulty", "broken", "missing"];
 
 export default function ManageEquipmentPage() {
   return (
-    <AdminGuard role="quartermaster">
+    <AdminGuard>
       <ManageContent />
     </AdminGuard>
   );

@@ -12,7 +12,7 @@ import type { Loan } from "@/lib/types";
 
 export default function AdminLoanHistoryPage() {
   return (
-    <AdminGuard role="quartermaster">
+    <AdminGuard>
       <AdminLoanHistoryContent />
     </AdminGuard>
   );

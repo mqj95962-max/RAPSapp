@@ -46,7 +46,7 @@ export default function SignInPage() {
           </div>
         )}
         <p className="mt-6 text-xs text-zinc-500">
-          New accounts default to member. Teachers promote quartermaster / archivist roles in Firebase.
+          New accounts default to member. Promote staff to admin in Firebase (Firestore users document).
         </p>
       </div>
     </div>

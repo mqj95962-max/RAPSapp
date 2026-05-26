@@ -14,12 +14,12 @@ service cloud.firestore {
       return signedIn() && role in userDoc().data.roles;
     }
 
-    function isQuartermaster() {
-      return hasRole('quartermaster');
-    }
-
-    function isArchivist() {
-      return hasRole('archivist');
+    function isAdmin() {
+      return signedIn() && (
+        hasRole('admin') ||
+        hasRole('quartermaster') ||
+        hasRole('archivist')
+      );
     }
 
     function isOwner(userId) {
@@ -35,30 +35,30 @@ service cloud.firestore {
 
     match /equipment/{equipmentId} {
       allow read: if signedIn();
-      allow create, update, delete: if isQuartermaster();
+      allow create, update, delete: if isAdmin();
     }
 
     match /categories/{categoryId} {
       allow read: if signedIn();
-      allow create, update, delete: if isQuartermaster();
+      allow create, update, delete: if isAdmin();
     }
 
     match /loans/{loanId} {
       allow read: if signedIn() && (
-        isQuartermaster() ||
+        isAdmin() ||
         resource.data.userId == request.auth.uid
       );
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'pending';
-      allow update: if isQuartermaster();
+      allow update: if isAdmin();
     }
 
     match /events/{eventId} {
       allow read: if signedIn();
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid;
-      allow update: if isArchivist()
+      allow update: if isAdmin()
         || (
           isOwner(resource.data.userId)
           && request.resource.data.diff(resource.data).affectedKeys()

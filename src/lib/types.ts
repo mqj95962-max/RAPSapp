@@ -1,4 +1,4 @@
-export type UserRole = "member" | "quartermaster" | "archivist";
+export type UserRole = "member" | "admin" | "quartermaster" | "archivist";
 
 export type EquipmentStatus = "working" | "faulty" | "broken" | "missing";
 

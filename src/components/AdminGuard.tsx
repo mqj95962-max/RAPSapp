@@ -3,17 +3,12 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { isAdmin } from "@/lib/roles";
 
-export function AdminGuard({
-  children,
-  role,
-}: {
-  children: React.ReactNode;
-  role: "quartermaster" | "archivist";
-}) {
+export function AdminGuard({ children }: { children: React.ReactNode }) {
   const { profile, loading } = useAuth();
   const router = useRouter();
-  const allowed = profile?.roles.includes(role);
+  const allowed = isAdmin(profile);
 
   useEffect(() => {
     if (!loading && profile && !allowed) {

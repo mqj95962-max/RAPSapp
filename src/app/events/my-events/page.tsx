@@ -52,7 +52,7 @@ export default function MyEventsPage() {
               </p>
               {ev.confirmed && (
                 <p className="mt-1 text-xs font-medium text-emerald-700">
-                  Confirmed by archivist
+                  Confirmed by admin
                 </p>
               )}
             </button>
@@ -101,7 +101,7 @@ function EventDetailModal({
         </p>
         <p className="mt-1 text-sm">{event.durationHours} hours coverage</p>
         {event.photosSubmitted && !event.confirmed && (
-          <p className="mt-2 text-sm text-amber-700">Awaiting archivist confirmation</p>
+          <p className="mt-2 text-sm text-amber-700">Awaiting admin confirmation</p>
         )}
         {event.confirmed && (
           <p className="mt-2 text-sm text-emerald-700">Photos confirmed</p>

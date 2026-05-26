@@ -20,7 +20,7 @@ const GROUPS: { status: LoanStatus; label: string }[] = [
 
 export default function MemberLoansPage() {
   return (
-    <AdminGuard role="quartermaster">
+    <AdminGuard>
       <MemberLoansContent />
     </AdminGuard>
   );
