@@ -16,6 +16,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return signedIn() && (
+        userDoc().data.get('isAdmin', false) == true ||
         hasRole('admin') ||
         hasRole('quartermaster') ||
         hasRole('archivist')
@@ -30,7 +31,7 @@ service cloud.firestore {
       allow read: if signedIn() && request.auth.uid == userId;
       allow create: if signedIn() && request.auth.uid == userId;
       allow update: if signedIn() && request.auth.uid == userId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['roles']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['roles', 'isAdmin']);
     }
 
     match /equipment/{equipmentId} {

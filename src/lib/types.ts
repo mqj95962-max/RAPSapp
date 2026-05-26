@@ -18,6 +18,7 @@ export interface UserProfile {
   displayName: string;
   phone: string;
   roles: UserRole[];
+  isAdmin: boolean;
   profileComplete: boolean;
   createdAt: number;
   updatedAt: number;

@@ -22,7 +22,7 @@ import type {
   UserProfile,
   UserRole,
 } from "./types";
-import { defaultRoles } from "./roles";
+import { defaultRoles, normalizeRoles } from "./roles";
 import { computeReturnDate } from "./time";
 
 function mapEquipment(id: string, data: DocumentData): Equipment {
@@ -90,7 +90,8 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     email: data.email ?? "",
     displayName: data.displayName ?? "",
     phone: data.phone ?? "",
-    roles: data.roles ?? defaultRoles(),
+    roles: normalizeRoles(data.roles ?? defaultRoles()),
+    isAdmin: data.isAdmin === true,
     profileComplete: data.profileComplete ?? false,
     createdAt: data.createdAt ?? 0,
     updatedAt: data.updatedAt ?? 0,
@@ -111,6 +112,7 @@ export async function upsertUserProfile(
       displayName: patch.displayName ?? "",
       phone: patch.phone ?? "",
       roles: defaultRoles(),
+      isAdmin: false,
       profileComplete: patch.profileComplete ?? false,
       createdAt: now,
       updatedAt: now,
