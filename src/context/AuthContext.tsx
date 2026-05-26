@@ -76,9 +76,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         profileUnsub = subscribeUserProfile(
           u.uid,
-          async (p) => {
+          (p) => {
             if (!p && u.email) {
-              await upsertUserProfile(u.uid, u.email, {});
+              void upsertUserProfile(u.uid, u.email, {});
               return;
             }
             setProfile(p);

@@ -22,7 +22,6 @@ import type {
   LoanEquipmentItem,
   LoanStatus,
   UserProfile,
-  UserRole,
 } from "./types";
 import { defaultRoles, normalizeRoles } from "./roles";
 import { computeReturnDate } from "./time";
@@ -111,7 +110,8 @@ export function subscribeUserProfile(
       }
       callback(mapUserProfile(uid, snap.data()));
     },
-    (err) => onError?.(err)
+    (err) =>
+      onError?.(err instanceof Error ? err : new Error(String(err)))
   );
 }
 
@@ -168,7 +168,7 @@ export function subscribeEquipment(
       );
       callback(items);
     },
-    (err) => options?.onError?.(err)
+    (err) => options?.onError?.(err instanceof Error ? err : new Error(String(err)))
   );
 }
 
@@ -242,7 +242,8 @@ export function subscribeCategories(
       );
       callback(items);
     },
-    (err) => onError?.(err)
+    (err) =>
+      onError?.(err instanceof Error ? err : new Error(String(err)))
   );
 }
 
@@ -286,7 +287,8 @@ export function subscribeAllLoans(
     (snap) => {
       callback(snap.docs.map((d) => mapLoan(d.id, d.data())));
     },
-    (err) => onError?.(err)
+    (err) =>
+      onError?.(err instanceof Error ? err : new Error(String(err)))
   );
 }
 
