@@ -64,7 +64,7 @@ function ManageContent() {
       equipmentId: equipmentId.trim(),
       status: "working",
       statusDetails: "",
-      categoryIds: [],
+      categoryIds: [] as string[],
       deletedAt: null,
     });
     load();

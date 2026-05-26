@@ -137,7 +137,7 @@ export async function fetchPastEquipment(): Promise<Equipment[]> {
 }
 
 export async function saveEquipment(
-  item: Omit<Equipment, "createdAt" | "updatedAt"> & { id?: string }
+  item: Omit<Equipment, "createdAt" | "updatedAt" | "id"> & { id?: string }
 ): Promise<string> {
   const now = Date.now();
   if (item.id) {
