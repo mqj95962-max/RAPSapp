@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   subscribeAllLoans,
+  subscribeAllUsers,
   subscribeCategories,
   subscribeEquipment,
 } from "@/lib/firestore";
-import type { Category, Equipment, Loan } from "@/lib/types";
+import type { Category, Equipment, Loan, UserProfile } from "@/lib/types";
 
 export function useEquipmentLive(includeDeleted = false) {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -81,6 +82,30 @@ export function useAllLoansLive() {
   }, []);
 
   return { loans, loading, error };
+}
+
+export function useAllUsersLive() {
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    const unsub = subscribeAllUsers(
+      (items) => {
+        setUsers(items);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        setError(err.message);
+        setLoading(false);
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  return { users, loading, error };
 }
 
 /** User loans derived from live all-loans stream (no extra index required). */

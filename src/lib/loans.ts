@@ -30,3 +30,16 @@ export const LOAN_BADGE_COLORS: Record<LoanStatus, string> = {
   denied: "bg-zinc-200 border-zinc-400 text-zinc-700",
   overdue: "bg-red-100 border-red-500 text-red-900",
 };
+
+/** Member currently has club equipment out or approved for pickup. */
+export function isMemberLoaningEquipment(
+  userId: string,
+  loans: Loan[],
+  now: Date
+): boolean {
+  return loans.some((loan) => {
+    if (loan.isExternal || loan.userId !== userId) return false;
+    const status = effectiveLoanStatus(loan, now);
+    return status === "approved" || status === "active" || status === "overdue";
+  });
+}
