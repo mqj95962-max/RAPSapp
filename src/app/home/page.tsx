@@ -66,6 +66,7 @@ function HomeContent() {
           <h2 className="text-lg font-semibold">Club admin</h2>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <NavCard href="/admin/members" label="View members" admin />
+            <NavCard href="/admin/delete-data" label="Delete data" admin />
           </div>
         </section>
       )}

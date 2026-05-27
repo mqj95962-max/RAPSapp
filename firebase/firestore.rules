@@ -39,6 +39,7 @@ service cloud.firestore {
       allow create: if signedIn() && request.auth.uid == userId;
       allow update: if signedIn() && request.auth.uid == userId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['roles', 'isAdmin']);
+      allow delete: if isAdmin();
     }
 
     match /equipment/{equipmentId} {
@@ -59,6 +60,7 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'pending';
       allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /events/{eventId} {
@@ -88,6 +90,7 @@ service cloud.firestore {
         allow create: if signedIn()
           && request.auth.uid == signupUserId
           && request.resource.data.userId == request.auth.uid;
+        allow delete: if isAdmin();
       }
     }
   }

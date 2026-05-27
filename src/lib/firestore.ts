@@ -12,6 +12,8 @@ import {
   where,
   orderBy,
   runTransaction,
+  writeBatch,
+  increment,
   type DocumentData,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -264,6 +266,63 @@ export async function softDeleteEquipment(id: string): Promise<void> {
     deletedAt: Date.now(),
     updatedAt: Date.now(),
   });
+}
+
+const DELETE_BATCH_SIZE = 450;
+
+async function deleteDocRefs(refs: ReturnType<typeof doc>[]): Promise<void> {
+  const db = getDb();
+  for (let i = 0; i < refs.length; i += DELETE_BATCH_SIZE) {
+    const batch = writeBatch(db);
+    for (const ref of refs.slice(i, i + DELETE_BATCH_SIZE)) {
+      batch.delete(ref);
+    }
+    await batch.commit();
+  }
+}
+
+export async function permanentlyDeleteEquipment(equipmentId: string): Promise<void> {
+  const db = getDb();
+  const categories = await fetchCategories();
+  const batch = writeBatch(db);
+  for (const cat of categories) {
+    if (cat.equipmentIds.includes(equipmentId)) {
+      batch.update(doc(db, "categories", cat.id), {
+        equipmentIds: cat.equipmentIds.filter((id) => id !== equipmentId),
+      });
+    }
+  }
+  batch.delete(doc(db, "equipment", equipmentId));
+  await batch.commit();
+}
+
+export async function permanentlyDeleteUserData(uid: string): Promise<void> {
+  const db = getDb();
+
+  const [eventsSnap, loansSnap, formalSnap] = await Promise.all([
+    getDocs(query(collection(db, "events"), where("userId", "==", uid))),
+    getDocs(query(collection(db, "loans"), where("userId", "==", uid))),
+    getDocs(collection(db, "formalEvents")),
+  ]);
+
+  const refsToDelete = [
+    ...eventsSnap.docs.map((d) => d.ref),
+    ...loansSnap.docs.map((d) => d.ref),
+  ];
+
+  for (const formalDoc of formalSnap.docs) {
+    const signupRef = doc(db, "formalEvents", formalDoc.id, "signups", uid);
+    const signupSnap = await getDoc(signupRef);
+    if (signupSnap.exists()) {
+      refsToDelete.push(signupRef);
+      await updateDoc(doc(db, "formalEvents", formalDoc.id), {
+        signupCount: increment(-1),
+      });
+    }
+  }
+
+  await deleteDocRefs(refsToDelete);
+  await deleteDoc(doc(db, "users", uid));
 }
 
 export function subscribeCategories(
