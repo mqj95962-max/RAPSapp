@@ -1,14 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AdminGuard } from "@/components/AdminGuard";
 import { SearchBar } from "@/components/SearchBar";
 import { useAuth } from "@/context/AuthContext";
-import { confirmEventPhotos, deleteEvent, fetchAllEvents } from "@/lib/firestore";
-import { groupEventsByDate } from "@/lib/events";
+import { groupEventsByDate, groupFormalEventsByDate } from "@/lib/events";
+import {
+  countSignupsByFormalEvent,
+  formatSignupCount,
+  groupSignupsByFormalEvent,
+} from "@/lib/formalEvents";
+import {
+  confirmEventPhotos,
+  deleteEvent,
+  fetchAllEvents,
+  fetchFormalEvents,
+} from "@/lib/firestore";
 import { formatDate } from "@/lib/time";
-import type { ClubEvent } from "@/lib/types";
+import type { ClubEvent, FormalEvent } from "@/lib/types";
+
+type CoverageTab = "signups" | "formal";
 
 export default function MemberEventsCoveragePage() {
   return (
@@ -20,12 +32,19 @@ export default function MemberEventsCoveragePage() {
 
 function CoverageContent() {
   const { profile } = useAuth();
+  const [tab, setTab] = useState<CoverageTab>("signups");
   const [events, setEvents] = useState<ClubEvent[]>([]);
+  const [formalEvents, setFormalEvents] = useState<FormalEvent[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<ClubEvent | null>(null);
 
   const load = useCallback(async () => {
-    setEvents(await fetchAllEvents());
+    const [allEvents, formals] = await Promise.all([
+      fetchAllEvents(),
+      fetchFormalEvents(),
+    ]);
+    setEvents(allEvents);
+    setFormalEvents(formals);
   }, []);
 
   useEffect(() => {
@@ -33,61 +52,131 @@ function CoverageContent() {
   }, [load]);
 
   const q = search.trim().toLowerCase();
-  const filtered = events.filter(
+
+  const filteredSignups = events.filter(
     (e) =>
       !q ||
       e.title.toLowerCase().includes(q) ||
       e.userName.toLowerCase().includes(q)
   );
-  const grouped = groupEventsByDate(filtered);
+  const groupedSignups = groupEventsByDate(filteredSignups);
+
+  const formalSignups = useMemo(
+    () => events.filter((e) => e.formalEventId),
+    [events]
+  );
+  const signupGroups = useMemo(
+    () => groupSignupsByFormalEvent(formalSignups),
+    [formalSignups]
+  );
+  const signupCounts = useMemo(
+    () => countSignupsByFormalEvent(formalSignups),
+    [formalSignups]
+  );
+
+  const filteredFormals = formalEvents.filter(
+    (e) =>
+      !q ||
+      e.title.toLowerCase().includes(q) ||
+      e.description.toLowerCase().includes(q)
+  );
+  const groupedFormals = groupFormalEventsByDate(filteredFormals);
 
   return (
     <AppShell title="Member events coverage">
-      <SearchBar value={search} onChange={setSearch} placeholder="Search member or event…" />
-      <div className="mt-4 space-y-6">
-        {grouped.map(({ date, label, events: dayEvents }) => (
-          <section key={date}>
-            <h3 className="text-sm font-semibold text-zinc-500">{label}</h3>
-            <ul className="mt-2 space-y-2">
-              {dayEvents.map((ev) => (
-                <li key={ev.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelected(ev)}
-                    className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition ${
-                      ev.confirmed
-                        ? "border-emerald-400 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/30"
-                        : ev.photosSubmitted
-                          ? "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30"
-                          : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
-                    }`}
-                  >
-                    <div>
-                      <p className="font-medium">{ev.title}</p>
-                      <p className="text-sm text-zinc-500">
-                        {ev.userName} · {ev.eventTime}
-                      </p>
-                    </div>
-                    {ev.photosSubmitted && !ev.confirmed && (
-                      <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
-                        Pending confirmation
-                      </span>
-                    )}
-                    {ev.confirmed && (
-                      <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">
-                        Confirmed
-                      </span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-        {!grouped.length && (
-          <p className="text-sm text-zinc-500">No events found.</p>
-        )}
+      <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700">
+        <TabButton
+          active={tab === "signups"}
+          onClick={() => setTab("signups")}
+          label="All member signups"
+        />
+        <TabButton
+          active={tab === "formal"}
+          onClick={() => setTab("formal")}
+          label="Formal events"
+        />
       </div>
+
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder={
+          tab === "signups"
+            ? "Search member or event…"
+            : "Search formal events…"
+        }
+        className="mt-4"
+      />
+
+      {tab === "signups" ? (
+        <div className="mt-4 space-y-6">
+          {groupedSignups.map(({ date, label, events: dayEvents }) => (
+            <section key={date}>
+              <h3 className="text-sm font-semibold text-zinc-500">{label}</h3>
+              <ul className="mt-2 space-y-2">
+                {dayEvents.map((ev) => (
+                  <SignupRow key={ev.id} event={ev} onSelect={setSelected} />
+                ))}
+              </ul>
+            </section>
+          ))}
+          {!groupedSignups.length && (
+            <p className="text-sm text-zinc-500">No events found.</p>
+          )}
+        </div>
+      ) : (
+        <div className="mt-4 space-y-6">
+          {groupedFormals.map(({ date, label, items }) => (
+            <section key={date}>
+              <h3 className="text-sm font-semibold text-zinc-500">{label}</h3>
+              <div className="mt-2 space-y-4">
+                {items.map((formal) => {
+                  const signups = signupGroups.get(formal.id) ?? [];
+                  const count = signupCounts.get(formal.id) ?? 0;
+                  return (
+                    <div
+                      key={formal.id}
+                      className="rounded-xl border border-violet-200 bg-violet-50/50 p-4 dark:border-violet-800 dark:bg-violet-950/20"
+                    >
+                      <div>
+                        <p className="font-medium">{formal.title}</p>
+                        <p className="text-sm text-zinc-500">
+                          {formal.eventTime} · {formal.durationHours}h ·{" "}
+                          {formatSignupCount(count, formal.maxSignups)}
+                        </p>
+                        {formal.description && (
+                          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            {formal.description}
+                          </p>
+                        )}
+                      </div>
+                      {signups.length ? (
+                        <ul className="mt-3 space-y-2">
+                          {signups.map((ev) => (
+                            <SignupRow
+                              key={ev.id}
+                              event={ev}
+                              onSelect={setSelected}
+                            />
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-3 text-sm text-zinc-500">
+                          No member signups yet.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+          {!groupedFormals.length && (
+            <p className="text-sm text-zinc-500">No formal events found.</p>
+          )}
+        </div>
+      )}
+
       {selected && (
         <ArchivistEventModal
           event={selected}
@@ -97,6 +186,72 @@ function CoverageContent() {
         />
       )}
     </AppShell>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`border-b-2 px-3 py-2 text-sm font-medium transition ${
+        active
+          ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+          : "border-transparent text-zinc-500 hover:text-zinc-700"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function SignupRow({
+  event,
+  onSelect,
+}: {
+  event: ClubEvent;
+  onSelect: (event: ClubEvent) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(event)}
+      className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition ${
+        event.confirmed
+          ? "border-emerald-400 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/30"
+          : event.photosSubmitted
+            ? "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30"
+            : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+      }`}
+    >
+      <div>
+        <p className="font-medium">{event.title}</p>
+        <p className="text-sm text-zinc-500">
+          {event.userName} · {event.eventTime}
+          {event.formalEventId && (
+            <span className="ml-2 text-xs text-violet-700">Formal signup</span>
+          )}
+        </p>
+      </div>
+      {event.photosSubmitted && !event.confirmed && (
+        <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+          Pending confirmation
+        </span>
+      )}
+      {event.confirmed && (
+        <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">
+          Confirmed
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -147,6 +302,9 @@ function ArchivistEventModal({
         <p className="mt-2 text-sm">
           {formatDate(event.eventDate)} at {event.eventTime} · {event.durationHours}h
         </p>
+        {event.formalEventId && (
+          <p className="mt-1 text-xs text-violet-700">Signed up via formal event</p>
+        )}
         <p className="mt-2 text-sm">
           Photos submitted: {event.photosSubmitted ? "Yes" : "No"}
         </p>

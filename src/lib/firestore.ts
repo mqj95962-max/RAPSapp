@@ -11,6 +11,7 @@ import {
   query,
   where,
   orderBy,
+  runTransaction,
   type DocumentData,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -19,6 +20,7 @@ import type {
   Category,
   ClubEvent,
   Equipment,
+  FormalEvent,
   Loan,
   LoanEquipmentItem,
   LoanStatus,
@@ -79,7 +81,22 @@ function mapEvent(id: string, data: DocumentData): ClubEvent {
     confirmedAt: data.confirmedAt ?? null,
     confirmedBy: data.confirmedBy ?? null,
     durationHours: data.durationHours ?? 2,
+    formalEventId: data.formalEventId ?? null,
     createdAt: data.createdAt ?? 0,
+  };
+}
+
+function mapFormalEvent(id: string, data: DocumentData): FormalEvent {
+  return {
+    id,
+    title: data.title ?? "",
+    eventDate: data.eventDate ?? "",
+    eventTime: data.eventTime ?? "",
+    durationHours: data.durationHours ?? 2,
+    description: data.description ?? "",
+    maxSignups: data.maxSignups ?? null,
+    createdAt: data.createdAt ?? 0,
+    createdBy: data.createdBy ?? "",
   };
 }
 
@@ -439,10 +456,12 @@ export async function createEvent(input: {
   eventDate: string;
   eventTime: string;
   durationHours: number;
+  formalEventId?: string | null;
 }): Promise<string> {
   const now = Date.now();
   const ref = await addDoc(collection(getDb(), "events"), {
     ...input,
+    formalEventId: input.formalEventId ?? null,
     photosSubmitted: false,
     photosSubmittedAt: null,
     confirmed: false,
@@ -473,4 +492,103 @@ export async function confirmEventPhotos(
 
 export async function deleteEvent(eventId: string): Promise<void> {
   await deleteDoc(doc(getDb(), "events", eventId));
+}
+
+export async function fetchFormalEvents(): Promise<FormalEvent[]> {
+  const snap = await getDocs(
+    query(collection(getDb(), "formalEvents"), orderBy("eventDate", "desc"))
+  );
+  return snap.docs.map((d) => mapFormalEvent(d.id, d.data()));
+}
+
+export async function fetchFormalEventSignups(
+  formalEventId: string
+): Promise<ClubEvent[]> {
+  const snap = await getDocs(
+    query(
+      collection(getDb(), "events"),
+      where("formalEventId", "==", formalEventId)
+    )
+  );
+  return snap.docs
+    .map((d) => mapEvent(d.id, d.data()))
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export async function createFormalEvent(input: {
+  title: string;
+  eventDate: string;
+  eventTime: string;
+  durationHours: number;
+  description: string;
+  maxSignups: number | null;
+  createdBy: string;
+}): Promise<string> {
+  const now = Date.now();
+  const ref = await addDoc(collection(getDb(), "formalEvents"), {
+    ...input,
+    createdAt: now,
+  });
+  return ref.id;
+}
+
+export async function deleteFormalEvent(formalEventId: string): Promise<void> {
+  await deleteDoc(doc(getDb(), "formalEvents", formalEventId));
+}
+
+export class FormalEventSignupError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "FormalEventSignupError";
+  }
+}
+
+export async function signUpForFormalEvent(
+  formalEventId: string,
+  userId: string,
+  userName: string
+): Promise<string> {
+  const db = getDb();
+
+  return runTransaction(db, async (tx) => {
+    const formalRef = doc(db, "formalEvents", formalEventId);
+    const formalSnap = await tx.get(formalRef);
+    if (!formalSnap.exists()) {
+      throw new FormalEventSignupError("This event no longer exists.");
+    }
+
+    const formal = mapFormalEvent(formalEventId, formalSnap.data());
+    const signupsSnap = await tx.get(
+      query(
+        collection(db, "events"),
+        where("formalEventId", "==", formalEventId)
+      )
+    );
+
+    const signups = signupsSnap.docs.map((d) => mapEvent(d.id, d.data()));
+    if (signups.some((s) => s.userId === userId)) {
+      throw new FormalEventSignupError("You are already signed up for this event.");
+    }
+    if (formal.maxSignups != null && signups.length >= formal.maxSignups) {
+      throw new FormalEventSignupError("This event is full.");
+    }
+
+    const newRef = doc(collection(db, "events"));
+    tx.set(newRef, {
+      userId,
+      userName,
+      title: formal.title,
+      eventDate: formal.eventDate,
+      eventTime: formal.eventTime,
+      durationHours: formal.durationHours,
+      formalEventId,
+      photosSubmitted: false,
+      photosSubmittedAt: null,
+      confirmed: false,
+      confirmedAt: null,
+      confirmedBy: null,
+      createdAt: Date.now(),
+    });
+    return newRef.id;
+  });
 }

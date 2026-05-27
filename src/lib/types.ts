@@ -84,5 +84,19 @@ export interface ClubEvent {
   confirmedAt: number | null;
   confirmedBy: string | null;
   durationHours: number;
+  formalEventId: string | null;
   createdAt: number;
+}
+
+export interface FormalEvent {
+  id: string;
+  title: string;
+  eventDate: string;
+  eventTime: string;
+  durationHours: number;
+  description: string;
+  /** null = unlimited signups */
+  maxSignups: number | null;
+  createdAt: number;
+  createdBy: string;
 }

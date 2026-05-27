@@ -73,5 +73,10 @@ service cloud.firestore {
         );
       allow delete: if isAdmin() || isOwner(resource.data.userId);
     }
+
+    match /formalEvents/{formalEventId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
   }
 }

@@ -49,10 +49,14 @@ function HomeContent() {
         <h2 className="text-lg font-semibold">Events coverage</h2>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <NavCard href="/events/add" label="Add event" />
+          <NavCard href="/events/formal" label="Formal events" />
           <NavCard href="/events/my-events" label="My events" />
           <NavCard href="/events/my-hours" label="My hours" />
           {admin && (
-            <NavCard href="/events/admin/coverage" label="Member events coverage" admin />
+            <>
+              <NavCard href="/events/admin/formal" label="Formal events (admin)" admin />
+              <NavCard href="/events/admin/coverage" label="Member events coverage" admin />
+            </>
           )}
         </div>
       </section>
