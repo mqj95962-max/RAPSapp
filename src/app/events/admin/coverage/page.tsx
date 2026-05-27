@@ -62,7 +62,7 @@ function CoverageContent() {
   const groupedSignups = groupEventsByDate(filteredSignups);
 
   const formalSignups = useMemo(
-    () => events.filter((e) => e.formalEventId),
+    () => events.filter((e) => e.formalEventId != null),
     [events]
   );
   const signupGroups = useMemo(
@@ -236,7 +236,7 @@ function SignupRow({
         <p className="font-medium">{event.title}</p>
         <p className="text-sm text-zinc-500">
           {event.userName} · {event.eventTime}
-          {event.formalEventId && (
+          {event.formalEventId != null && (
             <span className="ml-2 text-xs text-violet-700">Formal signup</span>
           )}
         </p>
@@ -302,7 +302,7 @@ function ArchivistEventModal({
         <p className="mt-2 text-sm">
           {formatDate(event.eventDate)} at {event.eventTime} · {event.durationHours}h
         </p>
-        {event.formalEventId && (
+        {event.formalEventId != null && (
           <p className="mt-1 text-xs text-violet-700">Signed up via formal event</p>
         )}
         <p className="mt-2 text-sm">

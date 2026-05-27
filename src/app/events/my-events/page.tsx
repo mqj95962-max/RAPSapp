@@ -132,7 +132,7 @@ function EventDetailModal({
           {formatDate(event.eventDate)} at {event.eventTime}
         </p>
         <p className="mt-1 text-sm">{event.durationHours} hours coverage</p>
-        {event.formalEventId && (
+        {event.formalEventId != null && (
           <p className="mt-1 text-xs text-violet-700">Formal event signup</p>
         )}
         {event.photosSubmitted && !event.confirmed && (

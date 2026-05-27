@@ -27,6 +27,7 @@ import type {
   UserProfile,
 } from "./types";
 import { defaultRoles, normalizeRoles } from "./roles";
+import { createFormalSignupError } from "./formalEvents";
 import { computeReturnDate } from "./time";
 
 function mapEquipment(id: string, data: DocumentData): Equipment {
@@ -536,13 +537,6 @@ export async function deleteFormalEvent(formalEventId: string): Promise<void> {
   await deleteDoc(doc(getDb(), "formalEvents", formalEventId));
 }
 
-export class FormalEventSignupError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "FormalEventSignupError";
-  }
-}
-
 export async function signUpForFormalEvent(
   formalEventId: string,
   userId: string,
@@ -554,7 +548,7 @@ export async function signUpForFormalEvent(
     const formalRef = doc(db, "formalEvents", formalEventId);
     const formalSnap = await tx.get(formalRef);
     if (!formalSnap.exists()) {
-      throw new FormalEventSignupError("This event no longer exists.");
+      throw createFormalSignupError("This event no longer exists.");
     }
 
     const formal = mapFormalEvent(formalEventId, formalSnap.data());
@@ -567,10 +561,10 @@ export async function signUpForFormalEvent(
 
     const signups = signupsSnap.docs.map((d) => mapEvent(d.id, d.data()));
     if (signups.some((s) => s.userId === userId)) {
-      throw new FormalEventSignupError("You are already signed up for this event.");
+      throw createFormalSignupError("You are already signed up for this event.");
     }
     if (formal.maxSignups != null && signups.length >= formal.maxSignups) {
-      throw new FormalEventSignupError("This event is full.");
+      throw createFormalSignupError("This event is full.");
     }
 
     const newRef = doc(collection(db, "events"));

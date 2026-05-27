@@ -16,9 +16,9 @@ import { groupFormalEventsByDate } from "@/lib/events";
 import {
   fetchAllEvents,
   fetchFormalEvents,
-  FormalEventSignupError,
   signUpForFormalEvent,
 } from "@/lib/firestore";
+import { isFormalSignupError } from "@/lib/formalEvents";
 import { formatDate } from "@/lib/time";
 import type { ClubEvent, FormalEvent } from "@/lib/types";
 
@@ -37,7 +37,7 @@ export default function FormalEventsPage() {
       fetchAllEvents(),
     ]);
     setFormalEvents(events);
-    setAllSignups(memberEvents.filter((e) => e.formalEventId));
+    setAllSignups(memberEvents.filter((e) => e.formalEventId != null));
     if (profile) {
       setUserEvents(memberEvents.filter((e) => e.userId === profile.uid));
     }
@@ -151,9 +151,7 @@ function MemberFormalEventDetailModal({
       onSignedUp();
     } catch (err) {
       setError(
-        err instanceof FormalEventSignupError
-          ? err.message
-          : "Could not sign up."
+        isFormalSignupError(err) ? err.message : "Could not sign up."
       );
     } finally {
       setBusy(false);

@@ -17,12 +17,10 @@ function sortByDateTime<T extends { eventDate: string; eventTime: string }>(
   });
 }
 
-function groupByEventDate<T extends { eventDate: string }>(
+function groupByEventDate<T extends { eventDate: string; eventTime: string }>(
   items: T[]
 ): DateGroup<T>[] {
-  const sorted = sortByDateTime(
-    items as (T & { eventTime: string })[]
-  );
+  const sorted = sortByDateTime(items);
   const byDate = new Map<string, T[]>();
 
   for (const item of sorted) {

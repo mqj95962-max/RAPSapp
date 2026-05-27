@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AdminGuard } from "@/components/AdminGuard";
 import { FormalEventBadge } from "@/components/events/FormalEventBadge";
@@ -44,7 +44,7 @@ function AdminFormalEventsContent() {
       fetchAllEvents(),
     ]);
     setFormalEvents(events);
-    setAllSignups(memberEvents.filter((e) => e.formalEventId));
+    setAllSignups(memberEvents.filter((e) => e.formalEventId != null));
   }, []);
 
   useEffect(() => {
@@ -155,7 +155,7 @@ function AddFormalEventModal({
 
   const canSubmit = Boolean(title.trim() && eventDate && eventTime && !saving);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     setSaving(true);
@@ -285,7 +285,7 @@ function AdminFormalEventDetailModal({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    fetchFormalEventSignups(event.id).then(setSignups);
+    void fetchFormalEventSignups(event.id).then(setSignups);
   }, [event.id]);
 
   const remove = async () => {

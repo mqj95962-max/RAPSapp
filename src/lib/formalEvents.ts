@@ -1,5 +1,17 @@
 import type { ClubEvent, FormalEvent } from "./types";
 
+export const FORMAL_SIGNUP_ERROR = "FormalEventSignupError";
+
+export function createFormalSignupError(message: string): Error {
+  const err = new Error(message);
+  err.name = FORMAL_SIGNUP_ERROR;
+  return err;
+}
+
+export function isFormalSignupError(err: unknown): err is Error {
+  return err instanceof Error && err.name === FORMAL_SIGNUP_ERROR;
+}
+
 export function formatSignupCount(
   count: number,
   maxSignups: number | null
@@ -20,7 +32,7 @@ export function countSignupsByFormalEvent(
 ): Map<string, number> {
   const counts = new Map<string, number>();
   for (const signup of signups) {
-    if (!signup.formalEventId) continue;
+    if (signup.formalEventId == null) continue;
     counts.set(
       signup.formalEventId,
       (counts.get(signup.formalEventId) ?? 0) + 1
@@ -34,7 +46,7 @@ export function groupSignupsByFormalEvent(
 ): Map<string, ClubEvent[]> {
   const groups = new Map<string, ClubEvent[]>();
   for (const signup of signups) {
-    if (!signup.formalEventId) continue;
+    if (signup.formalEventId == null) continue;
     const list = groups.get(signup.formalEventId);
     if (list) list.push(signup);
     else groups.set(signup.formalEventId, [signup]);
