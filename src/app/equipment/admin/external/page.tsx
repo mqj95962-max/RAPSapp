@@ -16,7 +16,12 @@ import {
   useEquipmentLive,
 } from "@/hooks/useLiveData";
 import { createLoanRequest } from "@/lib/firestore";
-import { groupByCategory, isBorrowable } from "@/lib/equipment";
+import {
+  filterEquipmentByCategoryTab,
+  groupByCategory,
+  isBorrowable,
+  type CategoryTabId,
+} from "@/lib/equipment";
 
 export default function ExternalLoansPage() {
   return (
@@ -31,18 +36,56 @@ function ExternalLoansContent() {
   const { items, addItem, removeItem, clear } = useExternalCart();
   const { now } = useServerTime();
   const router = useRouter();
-  const { equipment: allEquipment } = useEquipmentLive();
-  const { categories, error: catError } = useCategoriesLive();
+  const { equipment: allEquipment, loading: eqLoading, error: eqError } =
+    useEquipmentLive();
+  const { categories, loading: catLoading, error: catError } =
+    useCategoriesLive();
   const { loans, error: loanError } = useAllLoansLive();
   const [search, setSearch] = useState("");
   const [details, setDetails] = useState("");
   const [toast, setToast] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<CategoryTabId>("all");
 
   const equipment = useMemo(
     () => allEquipment.filter((e) => isBorrowable(e.status)),
     [allEquipment]
   );
+
+  const tabs = useMemo(() => {
+    const filed = new Set(categories.flatMap((c) => c.equipmentIds));
+    const list: { id: CategoryTabId; label: string; count: number }[] = [
+      { id: "all", label: "All", count: equipment.length },
+    ];
+
+    for (const cat of categories) {
+      list.push({
+        id: cat.id,
+        label: cat.name,
+        count: equipment.filter((e) => cat.equipmentIds.includes(e.id)).length,
+      });
+    }
+
+    const uncategorizedCount = equipment.filter((e) => !filed.has(e.id)).length;
+    list.push({
+      id: "uncategorized",
+      label: "Uncategorized",
+      count: uncategorizedCount,
+    });
+    return list;
+  }, [categories, equipment]);
+
+  const equipmentByTab = useMemo(
+    () => filterEquipmentByCategoryTab(equipment, categories, activeTab),
+    [equipment, categories, activeTab]
+  );
+
+  const grouped = useMemo(
+    () => groupByCategory(equipmentByTab, categories),
+    [equipmentByTab, categories]
+  );
+
+  const syncError = eqError || catError || loanError;
 
   const submit = async () => {
     if (!profile || !items.length || !details.trim()) return;
@@ -77,11 +120,31 @@ function ExternalLoansContent() {
         Loan equipment to non-members. Uses a separate cart from personal borrowing.
         Equipment list syncs live for all accounts.
       </p>
-      <LiveSyncBanner error={catError || loanError} />
+      <LiveSyncBanner error={syncError} />
       <SearchBar value={search} onChange={setSearch} className="mt-4" />
       {toast && <p className="mt-2 text-sm text-red-600">{toast}</p>}
+
+      <div className="mt-6 border-b border-zinc-200 dark:border-zinc-700">
+        <div className="flex gap-1 overflow-x-auto pb-0">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`shrink-0 rounded-t-lg border border-b-0 px-4 py-2 text-sm font-medium transition ${
+                activeTab === tab.id
+                  ? "border-zinc-300 bg-white text-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                  : "border-transparent bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400"
+              }`}
+            >
+              {tab.label}
+              <span className="ml-1.5 text-xs opacity-70">({tab.count})</span>
+            </button>
+          ))}
+        </div>
+      </div>
       <EquipmentList
-        grouped={groupByCategory(equipment, categories)}
+        grouped={grouped}
         loans={loans}
         now={now}
         search={search}
