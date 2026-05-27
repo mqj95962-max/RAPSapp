@@ -43,7 +43,9 @@ export default function MyEventsPage() {
               className={`w-full rounded-lg border px-4 py-3 text-left transition ${
                 ev.confirmed
                   ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-                  : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+                  : ev.photosSubmitted
+                    ? "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30"
+                    : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
               }`}
             >
               <p className="font-medium">{ev.title}</p>
@@ -53,6 +55,11 @@ export default function MyEventsPage() {
               {ev.confirmed && (
                 <p className="mt-1 text-xs font-medium text-emerald-700">
                   Confirmed by admin
+                </p>
+              )}
+              {!ev.confirmed && ev.photosSubmitted && (
+                <p className="mt-1 text-xs font-medium text-blue-700">
+                  Pending admin confirmation
                 </p>
               )}
             </button>
@@ -101,7 +108,9 @@ function EventDetailModal({
         </p>
         <p className="mt-1 text-sm">{event.durationHours} hours coverage</p>
         {event.photosSubmitted && !event.confirmed && (
-          <p className="mt-2 text-sm text-amber-700">Awaiting admin confirmation</p>
+          <p className="mt-2 text-sm text-blue-700">
+            Awaiting admin confirmation
+          </p>
         )}
         {event.confirmed && (
           <p className="mt-2 text-sm text-emerald-700">Photos confirmed</p>

@@ -48,7 +48,13 @@ function CoverageContent() {
             <button
               type="button"
               onClick={() => setSelected(ev)}
-              className="flex w-full items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-left dark:border-zinc-700 dark:bg-zinc-900"
+              className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition ${
+                ev.confirmed
+                  ? "border-emerald-400 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/30"
+                  : ev.photosSubmitted
+                    ? "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30"
+                    : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+              }`}
             >
               <div>
                 <p className="font-medium">{ev.title}</p>
@@ -57,8 +63,8 @@ function CoverageContent() {
                 </p>
               </div>
               {ev.photosSubmitted && !ev.confirmed && (
-                <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
-                  Ready to confirm
+                <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                  Pending confirmation
                 </span>
               )}
               {ev.confirmed && (
