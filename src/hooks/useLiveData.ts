@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   subscribeAllLoans,
+  subscribeAllEvents,
   subscribeAllUsers,
   subscribeCategories,
   subscribeEquipment,
 } from "@/lib/firestore";
-import type { Category, Equipment, Loan, UserProfile } from "@/lib/types";
+import type { Category, ClubEvent, Equipment, Loan, UserProfile } from "@/lib/types";
 
 export function useEquipmentLive(includeDeleted = false) {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -82,6 +83,30 @@ export function useAllLoansLive() {
   }, []);
 
   return { loans, loading, error };
+}
+
+export function useAllEventsLive() {
+  const [events, setEvents] = useState<ClubEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    const unsub = subscribeAllEvents(
+      (items) => {
+        setEvents(items);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        setError(err.message);
+        setLoading(false);
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  return { events, loading, error };
 }
 
 export function useAllUsersLive() {

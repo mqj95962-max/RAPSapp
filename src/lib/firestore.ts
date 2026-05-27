@@ -333,6 +333,20 @@ export function subscribeAllLoans(
   );
 }
 
+export function subscribeAllEvents(
+  callback: (events: ClubEvent[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  return onSnapshot(
+    query(collection(getDb(), "events"), orderBy("eventDate", "desc")),
+    (snap) => {
+      callback(snap.docs.map((d) => mapEvent(d.id, d.data())));
+    },
+    (err) =>
+      onError?.(err instanceof Error ? err : new Error(String(err)))
+  );
+}
+
 export async function fetchAllLoans(): Promise<Loan[]> {
   const snap = await getDocs(
     query(collection(getDb(), "loans"), orderBy("createdAt", "desc"))

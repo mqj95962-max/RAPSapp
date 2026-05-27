@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { LiveSyncBanner } from "@/components/LiveSyncBanner";
 import { SearchBar } from "@/components/SearchBar";
-import { useAllLoansLive, useAllUsersLive } from "@/hooks/useLiveData";
+import { useAllEventsLive, useAllLoansLive, useAllUsersLive } from "@/hooks/useLiveData";
 import { isMemberLoaningEquipment } from "@/lib/loans";
 import { useServerTime } from "@/context/ServerTimeContext";
+import { isAdmin } from "@/lib/roles";
 
 export default function ViewMembersPage() {
   return <ViewMembersContent />;
@@ -16,6 +17,7 @@ function ViewMembersContent() {
   const { now } = useServerTime();
   const { users, loading: usersLoading, error: usersError } = useAllUsersLive();
   const { loans, error: loansError } = useAllLoansLive();
+  const { events, error: eventsError } = useAllEventsLive();
   const [search, setSearch] = useState("");
 
   const loaningUserIds = useMemo(() => {
@@ -28,6 +30,14 @@ function ViewMembersContent() {
     return ids;
   }, [users, loans, now]);
 
+  const eventCountsByUserId = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const ev of events) {
+      counts.set(ev.userId, (counts.get(ev.userId) ?? 0) + 1);
+    }
+    return counts;
+  }, [events]);
+
   const q = search.trim().toLowerCase();
   const filtered = users.filter((user) => {
     if (!q) return true;
@@ -38,12 +48,12 @@ function ViewMembersContent() {
     );
   });
 
-  const syncError = usersError || loansError;
+  const syncError = usersError || loansError || eventsError;
 
   return (
     <AppShell title="View members">
       <p className="text-sm text-zinc-500">
-        All members who have signed in. Loan status updates live.
+        All members who have signed in. Loan and event stats update live.
       </p>
       <LiveSyncBanner error={syncError} />
       <SearchBar
@@ -58,9 +68,12 @@ function ViewMembersContent() {
       ) : (
         <ul className="mt-4 space-y-2">
           {filtered.map((user) => {
-            const isLoaning = loaningUserIds.has(user.uid);
+            const loaning = loaningUserIds.has(user.uid);
             const displayName = user.displayName.trim() || "No name set";
             const phone = user.phone.trim() || "No phone set";
+            const email = user.email.trim() || "No email";
+            const eventCount = eventCountsByUserId.get(user.uid) ?? 0;
+            const admin = isAdmin(user);
 
             return (
               <li
@@ -69,6 +82,7 @@ function ViewMembersContent() {
               >
                 <div>
                   <p className="font-medium">{displayName}</p>
+                  <p className="text-sm text-zinc-500">{email}</p>
                   <p className="text-sm text-zinc-500">{phone}</p>
                   {!user.profileComplete && (
                     <p className="mt-1 text-xs text-zinc-400">
@@ -76,11 +90,29 @@ function ViewMembersContent() {
                     </p>
                   )}
                 </div>
-                {isLoaning && (
-                  <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-900">
-                    Loaning equipment
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      loaning
+                        ? "bg-amber-100 text-amber-900"
+                        : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                    }`}
+                  >
+                    {loaning ? "Loaning" : "Not loaning"}
                   </span>
-                )}
+                  <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-900">
+                    {eventCount} events
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      admin
+                        ? "bg-amber-100 text-amber-900"
+                        : "bg-emerald-100 text-emerald-900"
+                    }`}
+                  >
+                    {admin ? "Admin" : "Member"}
+                  </span>
+                </div>
               </li>
             );
           })}
