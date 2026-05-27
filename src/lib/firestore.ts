@@ -5,6 +5,7 @@ import {
   getDocs,
   setDoc,
   addDoc,
+  deleteDoc,
   updateDoc,
   onSnapshot,
   query,
@@ -468,4 +469,8 @@ export async function confirmEventPhotos(
     confirmedAt: Date.now(),
     confirmedBy,
   });
+}
+
+export async function deleteEvent(eventId: string): Promise<void> {
+  await deleteDoc(doc(getDb(), "events", eventId));
 }
