@@ -33,6 +33,8 @@ function ViewMembersContent() {
   const eventCountsByUserId = useMemo(() => {
     const counts = new Map<string, number>();
     for (const ev of events) {
+      // Only count work that still needs action (not admin-confirmed yet).
+      if (ev.confirmed) continue;
       counts.set(ev.userId, (counts.get(ev.userId) ?? 0) + 1);
     }
     return counts;

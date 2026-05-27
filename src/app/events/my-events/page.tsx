@@ -31,48 +31,40 @@ export default function MyEventsPage() {
       e.title.toLowerCase().includes(q) ||
       e.userName.toLowerCase().includes(q)
   );
-  const grouped = groupEventsByDate(filtered);
+  const incomplete = filtered.filter((e) => !e.photosSubmitted);
+  const pending = filtered.filter((e) => e.photosSubmitted && !e.confirmed);
+  const completed = filtered.filter((e) => e.confirmed);
+
+  const groupedIncomplete = groupEventsByDate(incomplete);
+  const groupedPending = groupEventsByDate(pending);
+  const groupedCompleted = groupEventsByDate(completed);
 
   return (
     <AppShell title="My events">
       <SearchBar value={search} onChange={setSearch} placeholder="Search events…" />
       <div className="mt-4 space-y-6">
-        {grouped.map(({ date, label, events: dayEvents }) => (
-          <section key={date}>
-            <h3 className="text-sm font-semibold text-zinc-500">{label}</h3>
-            <ul className="mt-2 space-y-2">
-              {dayEvents.map((ev) => (
-                <li key={ev.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelected(ev)}
-                    className={`w-full rounded-lg border px-4 py-3 text-left transition ${
-                      ev.confirmed
-                        ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
-                        : ev.photosSubmitted
-                          ? "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30"
-                          : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
-                    }`}
-                  >
-                    <p className="font-medium">{ev.title}</p>
-                    <p className="text-sm text-zinc-500">at {ev.eventTime}</p>
-                    {ev.confirmed && (
-                      <p className="mt-1 text-xs font-medium text-emerald-700">
-                        Confirmed by admin
-                      </p>
-                    )}
-                    {!ev.confirmed && ev.photosSubmitted && (
-                      <p className="mt-1 text-xs font-medium text-blue-700">
-                        Pending admin confirmation
-                      </p>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-        {!grouped.length && (
+        <EventGroupSection
+          title={`Incomplete (${incomplete.length})`}
+          tone="incomplete"
+          grouped={groupedIncomplete}
+          onSelect={setSelected}
+          emptyText="No incomplete events."
+        />
+        <EventGroupSection
+          title={`Pending (${pending.length})`}
+          tone="pending"
+          grouped={groupedPending}
+          onSelect={setSelected}
+          emptyText="No pending events."
+        />
+        <EventGroupSection
+          title={`Completed (${completed.length})`}
+          tone="completed"
+          grouped={groupedCompleted}
+          onSelect={setSelected}
+          emptyText="No completed events."
+        />
+        {!filtered.length && (
           <p className="text-sm text-zinc-500">No events found.</p>
         )}
       </div>
@@ -84,6 +76,74 @@ export default function MyEventsPage() {
         />
       )}
     </AppShell>
+  );
+}
+
+function EventGroupSection({
+  title,
+  tone,
+  grouped,
+  onSelect,
+  emptyText,
+}: {
+  title: string;
+  tone: "incomplete" | "pending" | "completed";
+  grouped: { date: string; label: string; events: ClubEvent[] }[];
+  onSelect: (ev: ClubEvent) => void;
+  emptyText: string;
+}) {
+  const headerClass =
+    tone === "completed"
+      ? "text-emerald-700"
+      : tone === "pending"
+        ? "text-blue-700"
+        : "text-zinc-700 dark:text-zinc-200";
+
+  return (
+    <section>
+      <h2 className={`text-sm font-semibold ${headerClass}`}>{title}</h2>
+      {grouped.length ? (
+        <div className="mt-3 space-y-6">
+          {grouped.map(({ date, label, events: dayEvents }) => (
+            <section key={date}>
+              <h3 className="text-xs font-semibold text-zinc-500">{label}</h3>
+              <ul className="mt-2 space-y-2">
+                {dayEvents.map((ev) => (
+                  <li key={ev.id}>
+                    <button
+                      type="button"
+                      onClick={() => onSelect(ev)}
+                      className={`w-full rounded-lg border px-4 py-3 text-left transition ${
+                        ev.confirmed
+                          ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
+                          : ev.photosSubmitted
+                            ? "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30"
+                            : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+                      }`}
+                    >
+                      <p className="font-medium">{ev.title}</p>
+                      <p className="text-sm text-zinc-500">at {ev.eventTime}</p>
+                      {ev.confirmed && (
+                        <p className="mt-1 text-xs font-medium text-emerald-700">
+                          Confirmed by admin
+                        </p>
+                      )}
+                      {!ev.confirmed && ev.photosSubmitted && (
+                        <p className="mt-1 text-xs font-medium text-blue-700">
+                          Pending admin confirmation
+                        </p>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-zinc-500">{emptyText}</p>
+      )}
+    </section>
   );
 }
 
