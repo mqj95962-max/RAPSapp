@@ -10,6 +10,7 @@ import {
   countSignupsByFormalEvent,
   formatSignupCount,
   isFormalEventFull,
+  isFormalSignupError,
   memberSignedUpForFormal,
 } from "@/lib/formalEvents";
 import { groupFormalEventsByDate } from "@/lib/events";
@@ -18,7 +19,6 @@ import {
   fetchFormalEvents,
   signUpForFormalEvent,
 } from "@/lib/firestore";
-import { isFormalSignupError } from "@/lib/formalEvents";
 import { formatDate } from "@/lib/time";
 import type { ClubEvent, FormalEvent } from "@/lib/types";
 

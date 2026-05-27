@@ -1,0 +1,86 @@
+﻿node.exe : npm info using npm@11.11.0
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm info using npm@11.11.0:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm info using node@v24.14.1
+npm http fetch GET https://registry.npmjs.org/date-fns attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/date-fns attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/date-fns attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/firebase attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/firebase attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/firebase attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/firebase 70217ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/next attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/next attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/next attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/next 70240ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/@opentelemetry%2fapi attempt 1 failed with 
+UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/@opentelemetry%2fapi attempt 2 failed with 
+UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/@opentelemetry%2fapi attempt 3 failed with 
+UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/@opentelemetry%2fapi 70128ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/@playwright%2ftest attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/@playwright%2ftest attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/@playwright%2ftest attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/@playwright%2ftest 70144ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/babel-plugin-react-compiler attempt 1 failed with 
+UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/babel-plugin-react-compiler attempt 2 failed with 
+UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/babel-plugin-react-compiler attempt 3 failed with 
+UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/babel-plugin-react-compiler 70117ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/react attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/react attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/react attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/react 70138ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/react-dom attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/react-dom attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/react-dom attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/react-dom 70169ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/sass attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/sass attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/sass attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/sass 70123ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/@tailwindcss%2fpostcss attempt 1 failed with 
+UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/@tailwindcss%2fpostcss attempt 2 failed with 
+UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/@tailwindcss%2fpostcss attempt 3 failed with 
+UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/@tailwindcss%2fpostcss 70132ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/@types%2fnode attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/@types%2fnode attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/@types%2fnode attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/@types%2fnode 70177ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/@types%2freact attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/@types%2freact attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/@types%2freact attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/@types%2freact 70144ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/@types%2freact-dom attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/@types%2freact-dom attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/@types%2freact-dom attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/@types%2freact-dom 70119ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/eslint attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/eslint attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/eslint attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/eslint 70132ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/jiti attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/jiti attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/jiti attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/jiti 70138ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/eslint-config-next attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/eslint-config-next attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/eslint-config-next attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/eslint-config-next 70137ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/typescript attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/typescript attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/typescript attempt 3 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET 200 https://registry.npmjs.org/typescript 70189ms (cache stale)
+npm http fetch GET https://registry.npmjs.org/tailwindcss attempt 1 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE
+npm http fetch GET https://registry.npmjs.org/tailwindcss attempt 2 failed with UNABLE_TO_VERIFY_LEAF_SIGNATURE

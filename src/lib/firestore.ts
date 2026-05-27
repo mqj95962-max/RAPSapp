@@ -96,6 +96,7 @@ function mapFormalEvent(id: string, data: DocumentData): FormalEvent {
     durationHours: data.durationHours ?? 2,
     description: data.description ?? "",
     maxSignups: data.maxSignups ?? null,
+    signupCount: data.signupCount ?? 0,
     createdAt: data.createdAt ?? 0,
     createdBy: data.createdBy ?? "",
   };
@@ -528,6 +529,7 @@ export async function createFormalEvent(input: {
   const now = Date.now();
   const ref = await addDoc(collection(getDb(), "formalEvents"), {
     ...input,
+    signupCount: 0,
     createdAt: now,
   });
   return ref.id;
@@ -546,28 +548,32 @@ export async function signUpForFormalEvent(
 
   return runTransaction(db, async (tx) => {
     const formalRef = doc(db, "formalEvents", formalEventId);
-    const formalSnap = await tx.get(formalRef);
+    const signupRef = doc(db, "formalEvents", formalEventId, "signups", userId);
+    const [formalSnap, signupSnap] = await Promise.all([
+      tx.get(formalRef),
+      tx.get(signupRef),
+    ]);
+
     if (!formalSnap.exists()) {
       throw createFormalSignupError("This event no longer exists.");
     }
 
-    const formal = mapFormalEvent(formalEventId, formalSnap.data());
-    const signupsSnap = await tx.get(
-      query(
-        collection(db, "events"),
-        where("formalEventId", "==", formalEventId)
-      )
-    );
-
-    const signups = signupsSnap.docs.map((d) => mapEvent(d.id, d.data()));
-    if (signups.some((s) => s.userId === userId)) {
+    if (signupSnap.exists()) {
       throw createFormalSignupError("You are already signed up for this event.");
     }
-    if (formal.maxSignups != null && signups.length >= formal.maxSignups) {
+
+    const formal = mapFormalEvent(formalEventId, formalSnap.data());
+    if (formal.maxSignups != null && formal.signupCount >= formal.maxSignups) {
       throw createFormalSignupError("This event is full.");
     }
 
     const newRef = doc(collection(db, "events"));
+    tx.set(signupRef, {
+      userId,
+      userName,
+      createdAt: Date.now(),
+    });
+    tx.update(formalRef, { signupCount: formal.signupCount + 1 });
     tx.set(newRef, {
       userId,
       userName,

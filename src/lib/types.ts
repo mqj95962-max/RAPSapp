@@ -97,6 +97,7 @@ export interface FormalEvent {
   description: string;
   /** null = unlimited signups */
   maxSignups: number | null;
+  signupCount: number;
   createdAt: number;
   createdBy: string;
 }
