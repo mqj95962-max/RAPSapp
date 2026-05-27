@@ -40,6 +40,16 @@ function ViewMembersContent() {
     return counts;
   }, [events]);
 
+  const eventHoursByUserId = useMemo(() => {
+    const hours = new Map<string, number>();
+    for (const ev of events) {
+      // Keep in sync with the count badge: only track hours still needing action.
+      if (ev.confirmed) continue;
+      hours.set(ev.userId, (hours.get(ev.userId) ?? 0) + (ev.durationHours ?? 0));
+    }
+    return hours;
+  }, [events]);
+
   const q = search.trim().toLowerCase();
   const filtered = users.filter((user) => {
     if (!q) return true;
@@ -75,6 +85,7 @@ function ViewMembersContent() {
             const phone = user.phone.trim() || "No phone set";
             const email = user.email.trim() || "No email";
             const eventCount = eventCountsByUserId.get(user.uid) ?? 0;
+            const eventHours = eventHoursByUserId.get(user.uid) ?? 0;
             const admin = isAdmin(user);
 
             return (
@@ -104,6 +115,9 @@ function ViewMembersContent() {
                   </span>
                   <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-900">
                     {eventCount} events
+                  </span>
+                  <span className="shrink-0 rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-900">
+                    {eventHours}h
                   </span>
                   <span
                     className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
