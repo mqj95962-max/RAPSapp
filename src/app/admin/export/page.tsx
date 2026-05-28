@@ -65,9 +65,10 @@ export default function ExportDataPage() {
       </p>
 
       <ul className="mt-4 list-inside list-disc text-sm text-zinc-600 dark:text-zinc-400">
-        <li>Summary sheet with record counts</li>
-        <li>Header row styling, filters, and column sizing on each sheet</li>
-        <li>Loan status reflects current date (includes overdue where applicable)</li>
+        <li>Equipment grouped by category (active, then archived)</li>
+        <li>Status colours match the app (equipment, loans, events)</li>
+        <li>Summary sheet with record counts and a colour legend</li>
+        <li>Filters and column sizing on data sheets</li>
       </ul>
 
       <button
