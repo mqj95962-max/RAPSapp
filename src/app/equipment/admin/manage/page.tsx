@@ -340,6 +340,8 @@ function EquipmentFormModal({
           statusDetails: "",
           categoryIds: [] as string[],
           deletedAt: null,
+          reservedAt: null,
+          reservedNote: "",
         });
       } else if (item) {
         await saveEquipment({

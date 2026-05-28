@@ -20,7 +20,7 @@ import { sendNotification } from "@/lib/notifications";
 import {
   filterEquipmentByCategoryTab,
   groupByCategory,
-  isBorrowable,
+  canBeAddedToReserveList,
   type CategoryTabId,
 } from "@/lib/equipment";
 
@@ -49,7 +49,7 @@ function ExternalLoansContent() {
   const [activeTab, setActiveTab] = useState<CategoryTabId>("all");
 
   const equipment = useMemo(
-    () => allEquipment.filter((e) => isBorrowable(e.status)),
+    () => allEquipment.filter((e) => canBeAddedToReserveList(e)),
     [allEquipment]
   );
 

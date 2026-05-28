@@ -42,6 +42,8 @@ function mapEquipment(id: string, data: DocumentData): Equipment {
     statusDetails: data.statusDetails ?? "",
     categoryIds: data.categoryIds ?? [],
     deletedAt: data.deletedAt ?? null,
+    reservedAt: data.reservedAt ?? null,
+    reservedNote: data.reservedNote ?? "",
     createdAt: data.createdAt ?? 0,
     updatedAt: data.updatedAt ?? 0,
   };
@@ -279,6 +281,57 @@ export async function softDeleteEquipment(id: string): Promise<void> {
     deletedAt: Date.now(),
     updatedAt: Date.now(),
   });
+}
+
+export async function reserveEquipment(
+  id: string,
+  note = ""
+): Promise<void> {
+  await updateDoc(doc(getDb(), "equipment", id), {
+    reservedAt: Date.now(),
+    reservedNote: note.trim(),
+    updatedAt: Date.now(),
+  });
+}
+
+export async function releaseEquipment(id: string): Promise<void> {
+  await updateDoc(doc(getDb(), "equipment", id), {
+    reservedAt: null,
+    reservedNote: "",
+    updatedAt: Date.now(),
+  });
+}
+
+export async function reserveEquipmentBatch(
+  ids: string[],
+  note = ""
+): Promise<void> {
+  const trimmed = note.trim();
+  const now = Date.now();
+  const db = getDb();
+  const batch = writeBatch(db);
+  for (const id of ids) {
+    batch.update(doc(db, "equipment", id), {
+      reservedAt: now,
+      reservedNote: trimmed,
+      updatedAt: now,
+    });
+  }
+  await batch.commit();
+}
+
+export async function releaseEquipmentBatch(ids: string[]): Promise<void> {
+  const db = getDb();
+  const now = Date.now();
+  const batch = writeBatch(db);
+  for (const id of ids) {
+    batch.update(doc(db, "equipment", id), {
+      reservedAt: null,
+      reservedNote: "",
+      updatedAt: now,
+    });
+  }
+  await batch.commit();
 }
 
 const DELETE_BATCH_SIZE = 450;

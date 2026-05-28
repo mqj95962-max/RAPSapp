@@ -16,7 +16,7 @@ import {
 import {
   filterEquipmentByCategoryTab,
   groupByCategory,
-  isBorrowable,
+  isMemberBorrowListEquipment,
   type CategoryTabId,
 } from "@/lib/equipment";
 
@@ -32,7 +32,7 @@ export default function BorrowPage() {
   const [activeTab, setActiveTab] = useState<CategoryTabId>("all");
 
   const equipment = useMemo(
-    () => allEquipment.filter((e) => isBorrowable(e.status)),
+    () => allEquipment.filter((e) => isMemberBorrowListEquipment(e)),
     [allEquipment]
   );
   const tabs = useMemo(() => {
@@ -73,7 +73,7 @@ export default function BorrowPage() {
     <AppShell title="Borrow equipment">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-zinc-500">
-          Working and faulty equipment only. Updates sync live for all members.
+          Working and faulty equipment only. Reserved gear for club events is hidden.
         </p>
         <Link
           href="/equipment/cart"

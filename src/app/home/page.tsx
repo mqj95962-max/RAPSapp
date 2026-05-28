@@ -37,6 +37,7 @@ function HomeContent() {
             <>
               <NavCard href="/equipment/admin/member-loans" label="Member loans" admin />
               <NavCard href="/equipment/admin/manage" label="Manage equipment" admin />
+              <NavCard href="/equipment/admin/reserve" label="Reserve equipment" admin />
               <NavCard href="/equipment/admin/external" label="External loans" admin />
               <NavCard href="/equipment/admin/loan-history" label="Admin loan history" admin />
               <NavCard href="/equipment/admin/past-equipment" label="Past equipment" admin />

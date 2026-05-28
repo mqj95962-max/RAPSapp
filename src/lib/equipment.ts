@@ -19,6 +19,19 @@ export function isBorrowable(status: EquipmentStatus): boolean {
   return status === "working" || status === "faulty";
 }
 
+export function isReserved(equipment: Equipment): boolean {
+  return equipment.reservedAt != null;
+}
+
+/** Shown on the member borrow page (working/faulty, not archived, not reserved). */
+export function isMemberBorrowListEquipment(equipment: Equipment): boolean {
+  return isBorrowable(equipment.status) && !equipment.deletedAt && !isReserved(equipment);
+}
+
+export function canBeAddedToReserveList(equipment: Equipment): boolean {
+  return isBorrowable(equipment.status) && !equipment.deletedAt && !isReserved(equipment);
+}
+
 export function getEquipmentAvailability(
   equipmentDocId: string,
   loans: Loan[],

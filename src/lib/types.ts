@@ -31,6 +31,9 @@ export interface Equipment {
   statusDetails: string;
   categoryIds: string[];
   deletedAt: number | null;
+  /** When set, hidden from member borrow list (held for club events). */
+  reservedAt: number | null;
+  reservedNote: string;
   createdAt: number;
   updatedAt: number;
 }

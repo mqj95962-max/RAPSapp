@@ -27,6 +27,8 @@ interface EquipmentListProps {
   onAdd?: (item: Equipment) => void;
   onUnavailable?: (name: string) => void;
   showAddButton?: boolean;
+  /** When true, allow + even if item is on loan (admin reserve flow). */
+  allowAddWhenLoaned?: boolean;
 }
 
 export function EquipmentList({
@@ -37,6 +39,7 @@ export function EquipmentList({
   onAdd,
   onUnavailable,
   showAddButton = true,
+  allowAddWhenLoaned = false,
 }: EquipmentListProps) {
   const q = search.trim().toLowerCase();
 
@@ -60,6 +63,7 @@ export function EquipmentList({
               {filtered.map((item) => {
                 const avail = getEquipmentAvailability(item.id, loans, now);
                 const canBorrow = avail === "available";
+                const canAdd = allowAddWhenLoaned || canBorrow;
 
                 return (
                   <li
@@ -87,14 +91,14 @@ export function EquipmentList({
                           type="button"
                           aria-label={`Add ${item.name} to cart`}
                           onClick={() => {
-                            if (!canBorrow) {
+                            if (!canAdd) {
                               onUnavailable?.(item.name);
                               return;
                             }
                             onAdd(item);
                           }}
                           className={`flex h-8 w-8 items-center justify-center rounded-full text-lg font-bold ${
-                            canBorrow
+                            canAdd
                               ? "bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
                               : "bg-zinc-200 text-zinc-400 cursor-not-allowed"
                           }`}
