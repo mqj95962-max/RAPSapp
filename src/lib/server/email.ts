@@ -9,7 +9,13 @@ export function getAppBaseUrl(): string {
 }
 
 export function isEmailConfigured(): boolean {
-  return Boolean(process.env.SMTP_USER?.trim() && process.env.SMTP_PASS?.trim());
+  const pass = process.env.SMTP_PASS?.replace(/\s/g, "") ?? "";
+  return Boolean(process.env.SMTP_USER?.trim() && pass.length > 0);
+}
+
+export async function verifySmtpConnection(): Promise<void> {
+  const transport = getTransporter();
+  await transport.verify();
 }
 
 let transporter: nodemailer.Transporter | null = null;
@@ -18,7 +24,7 @@ function getTransporter(): nodemailer.Transporter {
   if (transporter) return transporter;
 
   const user = process.env.SMTP_USER?.trim();
-  const pass = process.env.SMTP_PASS?.trim();
+  const pass = process.env.SMTP_PASS?.replace(/\s/g, "");
   if (!user || !pass) {
     throw new Error("Email is not configured (SMTP_USER, SMTP_PASS).");
   }

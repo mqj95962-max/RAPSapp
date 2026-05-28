@@ -24,13 +24,30 @@ export function isStaffUser(data: FirebaseFirestore.DocumentData | undefined): b
   );
 }
 
+/** Extra staff inboxes from Vercel (comma-separated), always notified. */
+function envStaffEmails(): string[] {
+  const raw = process.env.NOTIFY_STAFF_EMAILS?.trim();
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+}
+
 export async function getStaffEmails(db: Firestore): Promise<string[]> {
+  const emails = new Set<string>(envStaffEmails());
   const snap = await db.collection("users").get();
-  const emails = new Set<string>();
   for (const doc of snap.docs) {
     if (!isStaffUser(doc.data())) continue;
     const email = String(doc.data().email ?? "").trim();
     if (email) emails.add(email);
   }
   return [...emails];
+}
+
+export function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain || !local) return "***";
+  const visible = local.length <= 2 ? local[0] : local.slice(0, 2);
+  return `${visible}***@${domain}`;
 }

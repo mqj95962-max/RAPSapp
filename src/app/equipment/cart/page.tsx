@@ -54,6 +54,7 @@ export default function CartPage() {
       const notifyError = await sendNotification("loan_requested", { loanId });
       clear();
       if (notifyError) {
+        sessionStorage.setItem("raps_notify_error", notifyError);
         router.push(
           `/equipment/my-loans?notifyError=${encodeURIComponent(notifyError)}`
         );

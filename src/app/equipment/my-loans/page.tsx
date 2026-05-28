@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { SearchBar } from "@/components/SearchBar";
@@ -23,8 +23,21 @@ const ACTIVE_STATUSES: LoanStatus[] = [
 
 export default function MyLoansPage() {
   const searchParams = useSearchParams();
-  const notifyError = searchParams.get("notifyError");
+  const [notifyError, setNotifyError] = useState<string | null>(null);
   const { profile } = useAuth();
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("notifyError");
+    const fromStorage =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("raps_notify_error")
+        : null;
+    const message = fromUrl ?? fromStorage;
+    if (message) {
+      setNotifyError(message);
+      sessionStorage.removeItem("raps_notify_error");
+    }
+  }, [searchParams]);
   const { now } = useServerTime();
   const { loans: userLoans, loading, error } = useUserLoansLive(profile?.uid);
   const [search, setSearch] = useState("");
@@ -57,9 +70,14 @@ export default function MyLoansPage() {
   return (
     <AppShell title="My loans">
       {notifyError && (
-        <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          Loan submitted, but staff were not emailed: {notifyError}
-        </p>
+        <div className="mb-4 rounded-lg border-2 border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p className="font-semibold">Loan saved — email to staff failed</p>
+          <p className="mt-1">{notifyError}</p>
+          <p className="mt-2 text-xs">
+            Staff can still see the request in Member loans. An admin can fix email under
+            Home → Email setup.
+          </p>
+        </div>
       )}
       <LiveSyncBanner error={error} />
       <SearchBar value={search} onChange={setSearch} />

@@ -9,6 +9,7 @@ import {
   dispatchNotification,
   type NotificationType,
 } from "@/lib/server/notifications";
+import { getBearerToken, verifyIdToken } from "@/lib/server/verifyCaller";
 
 const TYPES: NotificationType[] = [
   "loan_requested",
@@ -31,8 +32,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const authHeader = request.headers.get("Authorization");
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const token = getBearerToken(request.headers.get("Authorization"));
   if (!token) {
     return NextResponse.json({ error: "Missing authorization." }, { status: 401 });
   }
@@ -48,8 +48,7 @@ export async function POST(request: NextRequest) {
 
   let callerUid: string;
   try {
-    const decoded = await adminAuth.verifyIdToken(token);
-    callerUid = decoded.uid;
+    callerUid = await verifyIdToken(adminAuth, token);
   } catch {
     return NextResponse.json({ error: "Invalid authorization." }, { status: 401 });
   }
