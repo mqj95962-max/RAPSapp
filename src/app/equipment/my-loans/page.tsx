@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { SearchBar } from "@/components/SearchBar";
 import { LoanBadge } from "@/components/equipment/LoanBadge";
@@ -21,6 +22,8 @@ const ACTIVE_STATUSES: LoanStatus[] = [
 ];
 
 export default function MyLoansPage() {
+  const searchParams = useSearchParams();
+  const notifyError = searchParams.get("notifyError");
   const { profile } = useAuth();
   const { now } = useServerTime();
   const { loans: userLoans, loading, error } = useUserLoansLive(profile?.uid);
@@ -53,6 +56,11 @@ export default function MyLoansPage() {
 
   return (
     <AppShell title="My loans">
+      {notifyError && (
+        <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Loan submitted, but staff were not emailed: {notifyError}
+        </p>
+      )}
       <LiveSyncBanner error={error} />
       <SearchBar value={search} onChange={setSearch} />
       {loading ? (

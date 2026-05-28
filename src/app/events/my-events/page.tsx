@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { SearchBar } from "@/components/SearchBar";
 import { useAuth } from "@/context/AuthContext";
 import { deleteEvent, fetchUserEvents, markPhotosSubmitted } from "@/lib/firestore";
+import { sendNotification } from "@/lib/notifications";
 import { groupEventsByDate } from "@/lib/events";
 import { formatDate } from "@/lib/time";
 import type { ClubEvent } from "@/lib/types";
@@ -162,6 +163,10 @@ function EventDetailModal({
     setBusy(true);
     try {
       await markPhotosSubmitted(event.id);
+      const notifyError = await sendNotification("photos_submitted", {
+        eventId: event.id,
+      });
+      if (notifyError) console.warn("[notifications]", notifyError);
       onUpdated();
       onClose();
     } finally {

@@ -20,6 +20,13 @@ Web app for a school photography club: **equipment loaning & inventory** and **e
 - All users default to `member` in Firestore
 - Promote staff manually in Firebase Console → Firestore → `users/{uid}` → `roles` array: `["member", "admin"]`
 
+### Email notifications (optional)
+When configured, the app sends email via **Gmail SMTP**:
+- **Members:** loan approved (awaiting collection), loan denied
+- **Staff** (admin / quartermaster / archivist): new loan request, member marked photos submitted
+
+See `.env.example` for `SMTP_USER`, `SMTP_PASS`, and Firebase Admin credentials.
+
 ### Time
 - App syncs with internet time (WorldTimeAPI) for overdue calculation; refreshes every 5 minutes
 
@@ -70,7 +77,22 @@ git remote add origin https://github.com/YOUR_USER/raps-app.git
 git push -u origin main
 ```
 
-In Vercel: import repo, add the same `NEXT_PUBLIC_FIREBASE_*` env vars, deploy.
+In Vercel: import repo, add env vars from `.env.example` (Firebase client + Admin + Gmail SMTP if you want email), deploy.
+
+### 6. Email notifications (Gmail SMTP)
+Use a **club Gmail account** (can be the same Google account you use for Firebase, but sign-in and sending are separate).
+
+1. Turn on **2-Step Verification** for that Google account: [Google Account → Security](https://myaccount.google.com/security).
+2. Create an **App password**: Security → 2-Step Verification → App passwords → name it “RAPS app” → copy the 16-character password.
+3. In Vercel, set:
+   - `SMTP_USER` = full Gmail address (e.g. `raps.club@gmail.com`)
+   - `SMTP_PASS` = the app password (not your normal Gmail password)
+   - `EMAIL_FROM` = optional, e.g. `RAPS Photography Club <raps.club@gmail.com>`
+4. Firebase Admin (for the notification API): Project settings → **Service accounts** → **Generate new private key** → add `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` to Vercel.
+5. Set `NEXT_PUBLIC_APP_URL` to your live Vercel URL.
+6. Staff must have a valid `email` on their Firestore `users/{uid}` document (filled on Google sign-in).
+
+**Limits:** Free Gmail allows about 500 emails per day — enough for a school club. Google sign-in for members does not send email automatically; SMTP is only for these notification messages.
 
 ## Project structure
 
@@ -94,6 +116,6 @@ External loans follow the same flow with `isExternal: true` and show **EXTERNAL 
 
 ## Notes
 
-- No push notifications; all updates are manual in the app
+- Email notifications require Gmail SMTP + Firebase Admin env vars on Vercel; the app still works without them (no emails sent)
 - No QR scanning
 - Equipment delete is soft-delete → **Past equipment** page

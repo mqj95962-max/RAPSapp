@@ -12,6 +12,7 @@ import {
 import { effectiveLoanStatus, LOAN_STATUS_LABELS } from "@/lib/loans";
 import { formatDate, formatTimestamp } from "@/lib/time";
 import { useAuth } from "@/context/AuthContext";
+import { sendNotification } from "@/lib/notifications";
 
 function toDateInputValue(date: Date): string {
   const y = date.getFullYear();
@@ -152,9 +153,13 @@ export function LoanDetailModal({
                 type="button"
                 disabled={!canApprove}
                 onClick={() =>
-                  run(() =>
-                    approveLoan(loan.id, pickupDate, note.trim(), profile!.uid)
-                  )
+                  run(async () => {
+                    await approveLoan(loan.id, pickupDate, note.trim(), profile!.uid);
+                    const err = await sendNotification("loan_approved", {
+                      loanId: loan.id,
+                    });
+                    if (err) console.warn("[notifications]", err);
+                  })
                 }
                 className="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -164,7 +169,13 @@ export function LoanDetailModal({
                 type="button"
                 disabled={!canDeny}
                 onClick={() =>
-                  run(() => denyLoan(loan.id, note.trim(), profile!.uid))
+                  run(async () => {
+                    await denyLoan(loan.id, note.trim(), profile!.uid);
+                    const err = await sendNotification("loan_denied", {
+                      loanId: loan.id,
+                    });
+                    if (err) console.warn("[notifications]", err);
+                  })
                 }
                 className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
               >

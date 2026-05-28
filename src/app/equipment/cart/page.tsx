@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useMemberCart } from "@/context/CartContext";
 import { useServerTime } from "@/context/ServerTimeContext";
 import { createLoanRequest } from "@/lib/firestore";
+import { sendNotification } from "@/lib/notifications";
 import { LOAN_PERIOD_DAYS } from "@/lib/time";
 import { addDays, format } from "date-fns";
 
@@ -38,7 +39,7 @@ export default function CartPage() {
     setSubmitting(true);
     setError("");
     try {
-      await createLoanRequest({
+      const loanId = await createLoanRequest({
         userId: profile.uid,
         userName: profile.displayName,
         equipment: filtered.map((e) => ({
@@ -50,8 +51,15 @@ export default function CartPage() {
         isExternal: false,
         externalDetails: "",
       });
+      const notifyError = await sendNotification("loan_requested", { loanId });
       clear();
-      router.push("/equipment/my-loans");
+      if (notifyError) {
+        router.push(
+          `/equipment/my-loans?notifyError=${encodeURIComponent(notifyError)}`
+        );
+      } else {
+        router.push("/equipment/my-loans");
+      }
     } catch (e) {
       setError(
         e instanceof Error

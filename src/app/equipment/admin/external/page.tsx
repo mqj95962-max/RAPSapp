@@ -16,6 +16,7 @@ import {
   useEquipmentLive,
 } from "@/hooks/useLiveData";
 import { createLoanRequest } from "@/lib/firestore";
+import { sendNotification } from "@/lib/notifications";
 import {
   filterEquipmentByCategoryTab,
   groupByCategory,
@@ -91,7 +92,7 @@ function ExternalLoansContent() {
     if (!profile || !items.length || !details.trim()) return;
     setSubmitting(true);
     try {
-      await createLoanRequest({
+      const loanId = await createLoanRequest({
         userId: profile.uid,
         userName: "External",
         equipment: items.map((e) => ({
@@ -103,6 +104,8 @@ function ExternalLoansContent() {
         isExternal: true,
         externalDetails: details.trim(),
       });
+      const notifyError = await sendNotification("loan_requested", { loanId });
+      if (notifyError) setToast(`Loan saved. Email failed: ${notifyError}`);
       clear();
       setDetails("");
       router.push("/equipment/admin/member-loans");
