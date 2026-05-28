@@ -68,6 +68,7 @@ function HomeContent() {
             <NavCard href="/admin/members" label="View members" admin />
             <NavCard href="/admin/delete-data" label="Delete data" admin />
             <NavCard href="/admin/notifications" label="Email setup" admin />
+            <NavCard href="/admin/export" label="Export to Excel" admin />
           </div>
         </section>
       )}

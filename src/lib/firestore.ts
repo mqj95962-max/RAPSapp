@@ -142,6 +142,17 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   return mapUserProfile(uid, snap.data());
 }
 
+export async function fetchAllUsers(): Promise<UserProfile[]> {
+  const snap = await getDocs(collection(getDb(), "users"));
+  return snap.docs
+    .map((d) => mapUserProfile(d.id, d.data()))
+    .sort((a, b) => {
+      const nameA = a.displayName || a.email;
+      const nameB = b.displayName || b.email;
+      return nameA.localeCompare(nameB);
+    });
+}
+
 export function subscribeAllUsers(
   callback: (users: UserProfile[]) => void,
   onError?: (error: Error) => void
