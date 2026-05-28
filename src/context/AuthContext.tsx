@@ -31,7 +31,7 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  saveProfile: (name: string, phone: string) => Promise<void>;
+  saveProfile: (name: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -124,11 +124,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const saveProfile = useCallback(
-    async (name: string, phone: string) => {
+    async (name: string) => {
       if (!user?.email) return;
       await upsertUserProfile(user.uid, user.email, {
         displayName: name,
-        phone,
         profileComplete: true,
       });
       await refreshProfile();

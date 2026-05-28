@@ -16,7 +16,6 @@ export interface UserProfile {
   uid: string;
   email: string;
   displayName: string;
-  phone: string;
   roles: UserRole[];
   isAdmin: boolean;
   profileComplete: boolean;
@@ -53,7 +52,6 @@ export interface Loan {
   id: string;
   userId: string;
   userName: string;
-  userPhone: string;
   equipment: LoanEquipmentItem[];
   purpose: string;
   status: LoanStatus;

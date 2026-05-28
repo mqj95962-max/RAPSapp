@@ -43,7 +43,6 @@ function MemberLoansContent() {
     (l) =>
       !q ||
       l.userName.toLowerCase().includes(q) ||
-      l.userPhone.includes(q) ||
       l.equipment.some(
         (e) =>
           e.name.toLowerCase().includes(q) ||
@@ -60,7 +59,7 @@ function MemberLoansContent() {
       <SearchBar
         value={search}
         onChange={setSearch}
-        placeholder="Search name, phone, equipment…"
+        placeholder="Search name or equipment…"
       />
       {loading ? (
         <p className="mt-4 text-sm text-zinc-500">Loading loans…</p>

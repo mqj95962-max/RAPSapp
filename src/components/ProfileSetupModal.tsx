@@ -8,18 +8,17 @@ export function ProfileSetupModal() {
   const { saveProfile } = useAuth();
   const router = useRouter();
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const canContinue = name.trim().length > 0 && phone.trim().length > 0;
+  const canContinue = name.trim().length > 0;
 
   const handleContinue = async (destination: "/home" | "/equipment/borrow" | "/events/add") => {
     if (!canContinue) return;
     setSaving(true);
     setError("");
     try {
-      await saveProfile(name.trim(), phone.trim());
+      await saveProfile(name.trim());
       router.push(destination);
     } catch {
       setError("Could not save profile. Please try again.");
@@ -40,9 +39,9 @@ export function ProfileSetupModal() {
           Welcome — complete your profile
         </h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Your name and phone are tied to your sign-in account for loan and event records.
+          Your name is tied to your sign-in account for loan and event records.
         </p>
-        <div className="mt-4 space-y-3">
+        <div className="mt-4">
           <label className="block text-sm">
             <span className="font-medium">Full name</span>
             <input
@@ -50,15 +49,6 @@ export function ProfileSetupModal() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoFocus
-            />
-          </label>
-          <label className="block text-sm">
-            <span className="font-medium">Phone number</span>
-            <input
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              type="tel"
             />
           </label>
         </div>

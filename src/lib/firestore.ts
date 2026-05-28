@@ -14,6 +14,7 @@ import {
   runTransaction,
   writeBatch,
   increment,
+  deleteField,
   type DocumentData,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -51,7 +52,6 @@ function mapLoan(id: string, data: DocumentData): Loan {
     id,
     userId: data.userId ?? "",
     userName: data.userName ?? "",
-    userPhone: data.userPhone ?? "",
     equipment: data.equipment ?? [],
     purpose: data.purpose ?? "",
     status: data.status ?? "pending",
@@ -109,7 +109,6 @@ function mapUserProfile(uid: string, data: DocumentData): UserProfile {
     uid,
     email: data.email ?? "",
     displayName: data.displayName ?? "",
-    phone: data.phone ?? "",
     roles: normalizeRoles(data.roles ?? defaultRoles()),
     isAdmin: data.isAdmin === true,
     profileComplete: data.profileComplete ?? false,
@@ -167,7 +166,7 @@ export function subscribeAllUsers(
 export async function upsertUserProfile(
   uid: string,
   email: string,
-  patch: Partial<Pick<UserProfile, "displayName" | "phone" | "profileComplete">>
+  patch: Partial<Pick<UserProfile, "displayName" | "profileComplete">>
 ): Promise<void> {
   const ref = doc(getDb(), "users", uid);
   const existing = await getDoc(ref);
@@ -176,7 +175,6 @@ export async function upsertUserProfile(
     await setDoc(ref, {
       email,
       displayName: patch.displayName ?? "",
-      phone: patch.phone ?? "",
       roles: defaultRoles(),
       isAdmin: false,
       profileComplete: patch.profileComplete ?? false,
@@ -184,7 +182,11 @@ export async function upsertUserProfile(
       updatedAt: now,
     });
   } else {
-    await updateDoc(ref, { ...patch, updatedAt: now });
+    await updateDoc(ref, {
+      ...patch,
+      phone: deleteField(),
+      updatedAt: now,
+    });
   }
 }
 
@@ -427,7 +429,6 @@ export async function fetchUserLoans(userId: string): Promise<Loan[]> {
 export async function createLoanRequest(input: {
   userId: string;
   userName: string;
-  userPhone: string;
   equipment: LoanEquipmentItem[];
   purpose: string;
   isExternal: boolean;

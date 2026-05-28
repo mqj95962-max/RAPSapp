@@ -76,9 +76,7 @@ export function LoanDetailModal({
         <dl className="mt-4 space-y-2 text-sm">
           <div>
             <dt className="text-zinc-500">Member</dt>
-            <dd className="font-medium">
-              {loan.userName} · {loan.userPhone}
-            </dd>
+            <dd className="font-medium">{loan.userName}</dd>
           </div>
           <div>
             <dt className="text-zinc-500">Status</dt>

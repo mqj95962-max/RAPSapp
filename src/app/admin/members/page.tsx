@@ -55,7 +55,6 @@ function ViewMembersContent() {
     if (!q) return true;
     return (
       user.displayName.toLowerCase().includes(q) ||
-      user.phone.toLowerCase().includes(q) ||
       user.email.toLowerCase().includes(q)
     );
   });
@@ -71,7 +70,7 @@ function ViewMembersContent() {
       <SearchBar
         value={search}
         onChange={setSearch}
-        placeholder="Search name, phone, or email…"
+        placeholder="Search name or email…"
         className="mt-4"
       />
 
@@ -82,7 +81,6 @@ function ViewMembersContent() {
           {filtered.map((user) => {
             const loaning = loaningUserIds.has(user.uid);
             const displayName = user.displayName.trim() || "No name set";
-            const phone = user.phone.trim() || "No phone set";
             const email = user.email.trim() || "No email";
             const eventCount = eventCountsByUserId.get(user.uid) ?? 0;
             const eventHours = eventHoursByUserId.get(user.uid) ?? 0;
@@ -96,7 +94,6 @@ function ViewMembersContent() {
                 <div>
                   <p className="font-medium">{displayName}</p>
                   <p className="text-sm text-zinc-500">{email}</p>
-                  <p className="text-sm text-zinc-500">{phone}</p>
                   {!user.profileComplete && (
                     <p className="mt-1 text-xs text-zinc-400">
                       Profile incomplete

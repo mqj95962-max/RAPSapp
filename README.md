@@ -16,7 +16,7 @@ Web app for a school photography club: **equipment loaning & inventory** and **e
 - Search on every page
 
 ### Auth & roles
-- Google sign-in; first visit prompts for name & phone (stored on user profile)
+- Google sign-in; first visit prompts for name (stored on user profile)
 - All users default to `member` in Firestore
 - Promote staff manually in Firebase Console → Firestore → `users/{uid}` → `roles` array: `["member", "admin"]`
 

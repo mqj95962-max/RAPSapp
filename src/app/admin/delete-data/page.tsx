@@ -60,7 +60,6 @@ function DeleteDataContent() {
     if (!memberQuery) return true;
     return (
       member.displayName.toLowerCase().includes(memberQuery) ||
-      member.phone.toLowerCase().includes(memberQuery) ||
       member.email.toLowerCase().includes(memberQuery)
     );
   });

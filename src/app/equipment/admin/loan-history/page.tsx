@@ -33,7 +33,6 @@ function AdminLoanHistoryContent() {
     (l) =>
       !q ||
       l.userName.toLowerCase().includes(q) ||
-      l.userPhone.includes(q) ||
       l.equipment.some(
         (e) =>
           e.name.toLowerCase().includes(q) ||
@@ -44,7 +43,7 @@ function AdminLoanHistoryContent() {
   return (
     <AppShell title="Loan history (all members)">
       <LiveSyncBanner error={error} />
-      <SearchBar value={search} onChange={setSearch} placeholder="Search member, phone, equipment…" />
+      <SearchBar value={search} onChange={setSearch} placeholder="Search member or equipment…" />
       <ul className="mt-4 space-y-3">
         {filtered.map((loan) => (
           <li
@@ -54,9 +53,7 @@ function AdminLoanHistoryContent() {
             {loan.isExternal && (
               <p className="text-xs font-bold text-blue-700">EXTERNAL LOAN</p>
             )}
-            <p className="font-medium">
-              {loan.userName} · {loan.userPhone}
-            </p>
+            <p className="font-medium">{loan.userName}</p>
             <p>{loan.equipment.map((e) => e.name).join(", ")}</p>
             <p className="text-zinc-500">{loan.purpose}</p>
             <p className="mt-1 text-xs text-zinc-400">

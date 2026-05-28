@@ -94,7 +94,6 @@ function ExternalLoansContent() {
       await createLoanRequest({
         userId: profile.uid,
         userName: "External",
-        userPhone: "—",
         equipment: items.map((e) => ({
           equipmentDocId: e.id,
           equipmentId: e.equipmentId,

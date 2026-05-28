@@ -41,7 +41,6 @@ export default function CartPage() {
       await createLoanRequest({
         userId: profile.uid,
         userName: profile.displayName,
-        userPhone: profile.phone,
         equipment: filtered.map((e) => ({
           equipmentDocId: e.id,
           equipmentId: e.equipmentId,
