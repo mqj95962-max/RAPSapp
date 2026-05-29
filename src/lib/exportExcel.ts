@@ -13,6 +13,10 @@ import {
   SHEET_HEADER_EXCEL,
 } from "./exportColors";
 import {
+  formatPhotoSubmissionDueDate,
+  isPhotoSubmissionOverdue,
+} from "./events";
+import {
   EQUIPMENT_STATUS_LABELS,
   isMemberBorrowListEquipment,
   isReserved,
@@ -82,6 +86,7 @@ const EVENT_HEADERS = [
   "Event time",
   "Duration (hours)",
   "Signup type",
+  "Photo due date",
   "Photos submitted",
   "Photos submitted at",
   "Confirmed",
@@ -397,9 +402,13 @@ function addLoansSheet(workbook: ExcelJS.Workbook, loans: Loan[], now: Date): vo
   autoColumnWidths(sheet);
 }
 
-function eventRowStyle(event: ClubEvent): (typeof EVENT_ROW_EXCEL)[keyof typeof EVENT_ROW_EXCEL] {
+function eventRowStyle(
+  event: ClubEvent,
+  now: Date
+): (typeof EVENT_ROW_EXCEL)[keyof typeof EVENT_ROW_EXCEL] {
   if (event.confirmed) return EVENT_ROW_EXCEL.completed;
   if (event.photosSubmitted) return EVENT_ROW_EXCEL.pending;
+  if (isPhotoSubmissionOverdue(event, now)) return EVENT_ROW_EXCEL.overdue;
   return EVENT_ROW_EXCEL.incomplete;
 }
 
@@ -411,8 +420,8 @@ function sortEventsByDate(events: ClubEvent[]): ClubEvent[] {
   });
 }
 
-function addEventDataRow(sheet: ExcelJS.Worksheet, event: ClubEvent): void {
-  const rowStyle = eventRowStyle(event);
+function addEventDataRow(sheet: ExcelJS.Worksheet, event: ClubEvent, now: Date): void {
+  const rowStyle = eventRowStyle(event, now);
   const row = sheet.addRow([
     event.userName,
     event.title,
@@ -420,6 +429,7 @@ function addEventDataRow(sheet: ExcelJS.Worksheet, event: ClubEvent): void {
     event.eventTime,
     event.durationHours,
     event.formalEventId ? "Formal signup" : "Self-added",
+    formatPhotoSubmissionDueDate(event.eventDate),
     event.photosSubmitted ? "Yes" : "No",
     event.photosSubmittedAt ? formatTimestamp(event.photosSubmittedAt) : "",
     event.confirmed ? "Yes" : "No",
@@ -433,7 +443,7 @@ function addEventDataRow(sheet: ExcelJS.Worksheet, event: ClubEvent): void {
   }
 }
 
-function addEventsSheet(workbook: ExcelJS.Workbook, events: ClubEvent[]): void {
+function addEventsSheet(workbook: ExcelJS.Workbook, events: ClubEvent[], now: Date): void {
   const sheet = workbook.addWorksheet("Events", {
     properties: { defaultRowHeight: 18 },
   });
@@ -450,7 +460,7 @@ function addEventsSheet(workbook: ExcelJS.Workbook, events: ClubEvent[]): void {
   );
   if (openSignups.length) {
     for (const event of openSignups) {
-      addEventDataRow(sheet, event);
+      addEventDataRow(sheet, event, now);
     }
   } else {
     addSubsectionHeaderRow(sheet, "No open signups", EVENT_HEADERS.length);
@@ -463,7 +473,7 @@ function addEventsSheet(workbook: ExcelJS.Workbook, events: ClubEvent[]): void {
   );
   if (confirmed.length) {
     for (const event of confirmed) {
-      addEventDataRow(sheet, event);
+      addEventDataRow(sheet, event, now);
     }
   } else {
     addSubsectionHeaderRow(sheet, "No confirmed events", EVENT_HEADERS.length);
@@ -734,7 +744,7 @@ export async function buildClubExportWorkbook(data: ClubExportData): Promise<Arr
   summary.addRow(["Reserved equipment rows", "Blue highlight"]);
   summary.addRow(["Loan Status", "Matches loan badge colours in the app"]);
   summary.addRow(["External loan rows", "Blue highlight"]);
-  summary.addRow(["Event rows", "Green = confirmed, Blue = photos submitted, White = open"]);
+  summary.addRow(["Event rows", "Green = confirmed, Blue = photos submitted, Red = overdue, White = open"]);
   summary.addRow(["Members — Loaning", "Amber = currently has equipment out"]);
   summary.getColumn(1).width = 44;
   summary.getColumn(2).width = 52;
@@ -747,7 +757,7 @@ export async function buildClubExportWorkbook(data: ClubExportData): Promise<Arr
     data.equipmentArchived
   );
   addLoansSheet(workbook, data.loans, data.exportedAt);
-  addEventsSheet(workbook, data.events);
+  addEventsSheet(workbook, data.events, data.exportedAt);
   addFormalEventsSheet(workbook, data.formalEvents, data.events);
 
   const buffer = await workbook.xlsx.writeBuffer();

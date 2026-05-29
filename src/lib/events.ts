@@ -1,5 +1,27 @@
+import { addDays, isBefore, parseISO, startOfDay } from "date-fns";
 import type { ClubEvent } from "./types";
 import { formatDate } from "./time";
+
+export const PHOTO_SUBMISSION_DAYS = 7;
+
+/** Last calendar day members may submit photos (event date + 7 days). */
+export function photoSubmissionDueDate(eventDate: string): string {
+  return addDays(startOfDay(parseISO(eventDate)), PHOTO_SUBMISSION_DAYS)
+    .toISOString()
+    .slice(0, 10);
+}
+
+export function formatPhotoSubmissionDueDate(eventDate: string): string {
+  return formatDate(photoSubmissionDueDate(eventDate));
+}
+
+/** True when photos are not in and today is on or after the due date. */
+export function isPhotoSubmissionOverdue(event: ClubEvent, now: Date): boolean {
+  if (event.photosSubmitted || event.confirmed) return false;
+  const due = startOfDay(parseISO(photoSubmissionDueDate(event.eventDate)));
+  const today = startOfDay(now);
+  return !isBefore(today, due);
+}
 
 export interface DateGroup<T> {
   date: string;

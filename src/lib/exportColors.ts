@@ -31,6 +31,7 @@ export const EVENT_ROW_EXCEL = {
   incomplete: style("FFFFFFFF", "FF18181B"),
   pending: style("FFEFF6FF", "FF1E3A8A"),
   completed: style("FFECFDF5", "FF064E3B"),
+  overdue: style("FFFEE2E2", "FF7F1D1D"),
 } as const;
 
 export const CATEGORY_HEADER_EXCEL = style("FFE4E4E7", "FF18181B");

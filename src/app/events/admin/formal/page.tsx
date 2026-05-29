@@ -8,6 +8,7 @@ import { AdminEventSignupRow } from "@/components/events/AdminEventSignupRow";
 import { FormalEventBadge } from "@/components/events/FormalEventBadge";
 import { SearchBar } from "@/components/SearchBar";
 import { useAuth } from "@/context/AuthContext";
+import { useServerTime } from "@/context/ServerTimeContext";
 import { groupEventsByDate, groupFormalEventsByDate } from "@/lib/events";
 import {
   countSignupsByFormalEvent,
@@ -36,6 +37,7 @@ export default function AdminFormalEventsPage() {
 
 function AdminFormalEventsContent() {
   const { profile } = useAuth();
+  const { now } = useServerTime();
   const [tab, setTab] = useState<FormalAdminTab>("events");
   const [formalEvents, setFormalEvents] = useState<FormalEvent[]>([]);
   const [allSignups, setAllSignups] = useState<ClubEvent[]>([]);
@@ -188,6 +190,7 @@ function AdminFormalEventsContent() {
                     <AdminEventSignupRow
                       key={ev.id}
                       event={ev}
+                      now={now}
                       onSelect={setSelectedSignup}
                     />
                   ))}

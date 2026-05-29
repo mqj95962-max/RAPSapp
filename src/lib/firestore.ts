@@ -650,7 +650,35 @@ export async function confirmEventPhotos(
 }
 
 export async function deleteEvent(eventId: string): Promise<void> {
-  await deleteDoc(doc(getDb(), "events", eventId));
+  const db = getDb();
+  const eventRef = doc(db, "events", eventId);
+  const eventSnap = await getDoc(eventRef);
+  if (!eventSnap.exists()) return;
+
+  const data = eventSnap.data();
+  const formalEventId = (data.formalEventId as string | null) ?? null;
+  const userId = data.userId as string;
+
+  if (!formalEventId) {
+    await deleteDoc(eventRef);
+    return;
+  }
+
+  await runTransaction(db, async (tx) => {
+    const formalRef = doc(db, "formalEvents", formalEventId);
+    const signupRef = doc(db, "formalEvents", formalEventId, "signups", userId);
+    const formalSnap = await tx.get(formalRef);
+
+    if (formalSnap.exists()) {
+      const count = (formalSnap.data().signupCount as number) ?? 0;
+      if (count > 0) {
+        tx.update(formalRef, { signupCount: count - 1 });
+      }
+    }
+
+    tx.delete(signupRef);
+    tx.delete(eventRef);
+  });
 }
 
 export async function fetchFormalEvents(): Promise<FormalEvent[]> {
@@ -702,6 +730,33 @@ export async function signUpForFormalEvent(
   userName: string
 ): Promise<string> {
   const db = getDb();
+  const signupRef = doc(db, "formalEvents", formalEventId, "signups", userId);
+  const signupSnap = await getDoc(signupRef);
+
+  if (signupSnap.exists()) {
+    const eventsSnap = await getDocs(
+      query(
+        collection(db, "events"),
+        where("formalEventId", "==", formalEventId),
+        where("userId", "==", userId)
+      )
+    );
+    if (eventsSnap.empty) {
+      await runTransaction(db, async (tx) => {
+        const formalRef = doc(db, "formalEvents", formalEventId);
+        const formalSnap = await tx.get(formalRef);
+        tx.delete(signupRef);
+        if (formalSnap.exists()) {
+          const count = (formalSnap.data().signupCount as number) ?? 0;
+          if (count > 0) {
+            tx.update(formalRef, { signupCount: count - 1 });
+          }
+        }
+      });
+    } else {
+      throw createFormalSignupError("You are already signed up for this event.");
+    }
+  }
 
   return runTransaction(db, async (tx) => {
     const formalRef = doc(db, "formalEvents", formalEventId);
@@ -713,10 +768,6 @@ export async function signUpForFormalEvent(
 
     if (!formalSnap.exists()) {
       throw createFormalSignupError("This event no longer exists.");
-    }
-
-    if (signupSnap.exists()) {
-      throw createFormalSignupError("You are already signed up for this event.");
     }
 
     const formal = mapFormalEvent(formalEventId, formalSnap.data());

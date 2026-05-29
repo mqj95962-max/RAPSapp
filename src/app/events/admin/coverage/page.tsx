@@ -7,6 +7,7 @@ import { AdminEventDetailModal } from "@/components/events/AdminEventDetailModal
 import { AdminEventSignupRow } from "@/components/events/AdminEventSignupRow";
 import { SearchBar } from "@/components/SearchBar";
 import { useAuth } from "@/context/AuthContext";
+import { useServerTime } from "@/context/ServerTimeContext";
 import { groupEventsByDate, groupFormalEventsByDate } from "@/lib/events";
 import {
   countSignupsByFormalEvent,
@@ -28,6 +29,7 @@ export default function MemberEventsCoveragePage() {
 
 function CoverageContent() {
   const { profile } = useAuth();
+  const { now } = useServerTime();
   const [tab, setTab] = useState<CoverageTab>("signups");
   const [events, setEvents] = useState<ClubEvent[]>([]);
   const [formalEvents, setFormalEvents] = useState<FormalEvent[]>([]);
@@ -127,14 +129,15 @@ function CoverageContent() {
         <div className="mt-4 space-y-6">
           <p className="text-sm text-zinc-500">
             Open signups awaiting photos or confirmation. Confirmed events are in
-            the Confirmed events tab.
+            the Confirmed events tab. Items turn red when photo submission is overdue
+            (7 days after the event date).
           </p>
           {groupedSignups.map(({ date, label, events: dayEvents }) => (
             <section key={date}>
               <h3 className="text-sm font-semibold text-zinc-500">{label}</h3>
               <ul className="mt-2 space-y-2">
                 {dayEvents.map((ev) => (
-                  <AdminEventSignupRow key={ev.id} event={ev} onSelect={setSelected} />
+                  <AdminEventSignupRow key={ev.id} event={ev} now={now} onSelect={setSelected} />
                 ))}
               </ul>
             </section>
@@ -155,7 +158,7 @@ function CoverageContent() {
               <h3 className="text-sm font-semibold text-zinc-500">{label}</h3>
               <ul className="mt-2 space-y-2">
                 {dayEvents.map((ev) => (
-                  <AdminEventSignupRow key={ev.id} event={ev} onSelect={setSelected} />
+                  <AdminEventSignupRow key={ev.id} event={ev} now={now} onSelect={setSelected} />
                 ))}
               </ul>
             </section>
@@ -170,7 +173,8 @@ function CoverageContent() {
         <div className="mt-4 space-y-6">
           <p className="text-sm text-zinc-500">
             Formal event signups still needing action. Confirmed formal signups are
-            under Confirmed events.
+            under Confirmed events. Removing a signup below only removes that member&apos;s
+            entry — the formal event itself stays on the Formal events (admin) page.
           </p>
           {groupedFormals.map(({ date, label, items }) => (
             <section key={date}>
@@ -202,6 +206,7 @@ function CoverageContent() {
                             <AdminEventSignupRow
                               key={ev.id}
                               event={ev}
+                              now={now}
                               onSelect={setSelected}
                             />
                           ))}

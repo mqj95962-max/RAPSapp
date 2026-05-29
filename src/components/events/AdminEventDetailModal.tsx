@@ -30,9 +30,13 @@ export function AdminEventDetailModal({
   };
 
   const remove = async () => {
-    const message = event.confirmed
-      ? "This event is confirmed and counts toward member hours. Delete it anyway?"
-      : "Delete this event? This cannot be undone.";
+    const message = event.formalEventId != null
+      ? event.confirmed
+        ? "Remove this member's formal event signup? The club formal event itself will stay listed. This signup counts toward their hours — remove anyway?"
+        : "Remove this member's signup for the formal event? The formal event itself will not be deleted."
+      : event.confirmed
+        ? "This event is confirmed and counts toward member hours. Delete it anyway?"
+        : "Delete this event? This cannot be undone.";
     if (!window.confirm(message)) return;
     setBusy(true);
     try {
@@ -74,7 +78,7 @@ export function AdminEventDetailModal({
           onClick={remove}
           className="mt-3 w-full rounded-lg border border-red-200 py-2 text-sm font-medium text-red-700 disabled:opacity-40"
         >
-          Delete event
+          {event.formalEventId != null ? "Remove member signup" : "Delete event"}
         </button>
         <button type="button" onClick={onClose} className="mt-3 w-full text-sm text-zinc-500">
           Close

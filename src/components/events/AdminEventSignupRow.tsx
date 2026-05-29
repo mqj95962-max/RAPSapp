@@ -1,14 +1,22 @@
 "use client";
 
+import {
+  formatPhotoSubmissionDueDate,
+  isPhotoSubmissionOverdue,
+} from "@/lib/events";
 import type { ClubEvent } from "@/lib/types";
 
 export function AdminEventSignupRow({
   event,
+  now,
   onSelect,
 }: {
   event: ClubEvent;
+  now: Date;
   onSelect: (event: ClubEvent) => void;
 }) {
+  const overdue = isPhotoSubmissionOverdue(event, now);
+
   return (
     <button
       type="button"
@@ -18,7 +26,9 @@ export function AdminEventSignupRow({
           ? "border-emerald-400 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/30"
           : event.photosSubmitted
             ? "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30"
-            : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+            : overdue
+              ? "border-red-400 bg-red-50 dark:border-red-700 dark:bg-red-950/30"
+              : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
       }`}
     >
       <div>
@@ -29,7 +39,19 @@ export function AdminEventSignupRow({
             <span className="ml-2 text-xs text-violet-700">Formal signup</span>
           )}
         </p>
+        {!event.photosSubmitted && !event.confirmed && (
+          <p className={`mt-1 text-xs ${overdue ? "font-medium text-red-700" : "text-zinc-400"}`}>
+            {overdue
+              ? "Photo submission overdue"
+              : `Submit photos by ${formatPhotoSubmissionDueDate(event.eventDate)}`}
+          </p>
+        )}
       </div>
+      {overdue && (
+        <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+          Overdue
+        </span>
+      )}
       {event.photosSubmitted && !event.confirmed && (
         <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
           Pending confirmation

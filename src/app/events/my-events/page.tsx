@@ -4,14 +4,20 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SearchBar } from "@/components/SearchBar";
 import { useAuth } from "@/context/AuthContext";
+import { useServerTime } from "@/context/ServerTimeContext";
 import { deleteEvent, fetchUserEvents, markPhotosSubmitted } from "@/lib/firestore";
 import { sendNotification } from "@/lib/notifications";
-import { groupEventsByDate } from "@/lib/events";
+import {
+  formatPhotoSubmissionDueDate,
+  groupEventsByDate,
+  isPhotoSubmissionOverdue,
+} from "@/lib/events";
 import { formatDate } from "@/lib/time";
 import type { ClubEvent } from "@/lib/types";
 
 export default function MyEventsPage() {
   const { profile } = useAuth();
+  const { now } = useServerTime();
   const [events, setEvents] = useState<ClubEvent[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<ClubEvent | null>(null);
@@ -48,6 +54,7 @@ export default function MyEventsPage() {
           title={`Incomplete (${incomplete.length})`}
           tone="incomplete"
           grouped={groupedIncomplete}
+          now={now}
           onSelect={setSelected}
           emptyText="No incomplete events."
         />
@@ -55,6 +62,7 @@ export default function MyEventsPage() {
           title={`Pending (${pending.length})`}
           tone="pending"
           grouped={groupedPending}
+          now={now}
           onSelect={setSelected}
           emptyText="No pending events."
         />
@@ -62,6 +70,7 @@ export default function MyEventsPage() {
           title={`Completed (${completed.length})`}
           tone="completed"
           grouped={groupedCompleted}
+          now={now}
           onSelect={setSelected}
           emptyText="No completed events."
         />
@@ -72,6 +81,7 @@ export default function MyEventsPage() {
       {selected && (
         <EventDetailModal
           event={selected}
+          now={now}
           onClose={() => setSelected(null)}
           onUpdated={load}
         />
@@ -84,12 +94,14 @@ function EventGroupSection({
   title,
   tone,
   grouped,
+  now,
   onSelect,
   emptyText,
 }: {
   title: string;
   tone: "incomplete" | "pending" | "completed";
   grouped: { date: string; label: string; events: ClubEvent[] }[];
+  now: Date;
   onSelect: (ev: ClubEvent) => void;
   emptyText: string;
 }) {
@@ -109,7 +121,9 @@ function EventGroupSection({
             <section key={date}>
               <h3 className="text-xs font-semibold text-zinc-500">{label}</h3>
               <ul className="mt-2 space-y-2">
-                {dayEvents.map((ev) => (
+                {dayEvents.map((ev) => {
+                  const overdue = isPhotoSubmissionOverdue(ev, now);
+                  return (
                   <li key={ev.id}>
                     <button
                       type="button"
@@ -119,11 +133,20 @@ function EventGroupSection({
                           ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
                           : ev.photosSubmitted
                             ? "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30"
-                            : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+                            : overdue
+                              ? "border-red-400 bg-red-50 dark:border-red-700 dark:bg-red-950/30"
+                              : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
                       }`}
                     >
                       <p className="font-medium">{ev.title}</p>
                       <p className="text-sm text-zinc-500">at {ev.eventTime}</p>
+                      {!ev.photosSubmitted && !ev.confirmed && (
+                        <p className={`mt-1 text-xs ${overdue ? "font-medium text-red-700" : "text-zinc-500"}`}>
+                          {overdue
+                            ? "Photo submission overdue"
+                            : `Submit photos by ${formatPhotoSubmissionDueDate(ev.eventDate)}`}
+                        </p>
+                      )}
                       {ev.confirmed && (
                         <p className="mt-1 text-xs font-medium text-emerald-700">
                           Confirmed by admin
@@ -136,7 +159,8 @@ function EventGroupSection({
                       )}
                     </button>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </section>
           ))}
@@ -150,14 +174,17 @@ function EventGroupSection({
 
 function EventDetailModal({
   event,
+  now,
   onClose,
   onUpdated,
 }: {
   event: ClubEvent;
+  now: Date;
   onClose: () => void;
   onUpdated: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const overdue = isPhotoSubmissionOverdue(event, now);
 
   const submitPhotos = async () => {
     setBusy(true);
@@ -199,6 +226,13 @@ function EventDetailModal({
         <p className="mt-1 text-sm">{event.durationHours} hours coverage</p>
         {event.formalEventId != null && (
           <p className="mt-1 text-xs text-violet-700">Formal event signup</p>
+        )}
+        {!event.photosSubmitted && !event.confirmed && (
+          <p className={`mt-2 text-sm ${overdue ? "font-medium text-red-700" : "text-zinc-600"}`}>
+            {overdue
+              ? "Photo submission is overdue."
+              : `Submit photos within 1 week — due by ${formatPhotoSubmissionDueDate(event.eventDate)}.`}
+          </p>
         )}
         {event.photosSubmitted && !event.confirmed && (
           <p className="mt-2 text-sm text-blue-700">
