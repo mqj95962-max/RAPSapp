@@ -455,6 +455,10 @@ export async function saveCategory(
   return ref.id;
 }
 
+export async function deleteCategory(categoryId: string): Promise<void> {
+  await deleteDoc(doc(getDb(), "categories", categoryId));
+}
+
 export function subscribeAllLoans(
   callback: (loans: Loan[]) => void,
   onError?: (error: Error) => void

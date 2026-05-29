@@ -14,7 +14,7 @@ import {
 } from "@/lib/equipment";
 import { LiveSyncBanner } from "@/components/LiveSyncBanner";
 import { useCategoriesLive, useEquipmentLive } from "@/hooks/useLiveData";
-import { saveCategory, saveEquipment, softDeleteEquipment } from "@/lib/firestore";
+import { deleteCategory, saveCategory, saveEquipment, softDeleteEquipment } from "@/lib/firestore";
 import type { Category, Equipment, EquipmentStatus } from "@/lib/types";
 
 const STATUSES: EquipmentStatus[] = ["working", "faulty", "broken", "missing"];
@@ -38,6 +38,7 @@ function ManageContent() {
     { mode: "add" } | { mode: "edit"; item: Equipment } | null
   >(null);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
+  const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
   const [statusItem, setStatusItem] = useState<Equipment | null>(null);
   const [detailItem, setDetailItem] = useState<Equipment | null>(null);
   const [fileTarget, setFileTarget] = useState<Equipment | null>(null);
@@ -107,6 +108,13 @@ function ManageContent() {
           className="rounded-lg border px-3 py-1.5 text-sm font-medium"
         >
           Add category
+        </button>
+        <button
+          type="button"
+          onClick={() => setManageCategoriesOpen(true)}
+          className="rounded-lg border px-3 py-1.5 text-sm font-medium"
+        >
+          Manage categories
         </button>
       </div>
 
@@ -234,6 +242,16 @@ function ManageContent() {
         <CategoryFormModal
           onClose={() => setCategoryFormOpen(false)}
           onSaved={() => {}}
+        />
+      )}
+
+      {manageCategoriesOpen && (
+        <ManageCategoriesModal
+          categories={categories}
+          onClose={() => setManageCategoriesOpen(false)}
+          onDeleted={(deletedId) => {
+            if (activeTab === deletedId) setActiveTab("all");
+          }}
         />
       )}
 
@@ -447,6 +465,125 @@ function CategoryFormModal({
           Cancel
         </button>
       </div>
+    </Modal>
+  );
+}
+
+function ManageCategoriesModal({
+  categories,
+  onClose,
+  onDeleted,
+}: {
+  categories: Category[];
+  onClose: () => void;
+  onDeleted: (categoryId: string) => void;
+}) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<Category | null>(null);
+
+  const remove = async (category: Category) => {
+    setBusyId(category.id);
+    setError(null);
+    try {
+      await deleteCategory(category.id);
+      onDeleted(category.id);
+      setConfirmTarget(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not delete category.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <Modal title="Manage categories" onClose={() => !busyId && onClose()}>
+      <p className="text-sm text-zinc-500">
+        Deleting a category does not delete equipment. Items filed under it will
+        appear as Uncategorized.
+      </p>
+      {error && (
+        <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {error}
+        </p>
+      )}
+      {categories.length ? (
+        <ul className="mt-4 max-h-80 space-y-2 overflow-y-auto">
+          {categories.map((category) => {
+            const count = category.equipmentIds.length;
+            const busy = busyId === category.id;
+            return (
+              <li
+                key={category.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-700"
+              >
+                <div>
+                  <p className="font-medium">{category.name}</p>
+                  <p className="text-xs text-zinc-500">
+                    {count} item{count === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={Boolean(busyId)}
+                  onClick={() => setConfirmTarget(category)}
+                  className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 disabled:opacity-40"
+                >
+                  {busy ? "Deleting…" : "Delete"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm text-zinc-500">No categories yet.</p>
+      )}
+      <button
+        type="button"
+        disabled={Boolean(busyId)}
+        onClick={onClose}
+        className="mt-4 w-full rounded-lg border py-2 text-sm disabled:opacity-40"
+      >
+        Close
+      </button>
+
+      {confirmTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 dark:bg-zinc-900">
+            <h3 className="text-lg font-semibold">Delete category?</h3>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              Remove <strong>{confirmTarget.name}</strong>?
+              {confirmTarget.equipmentIds.length > 0 ? (
+                <>
+                  {" "}
+                  Its {confirmTarget.equipmentIds.length} item
+                  {confirmTarget.equipmentIds.length === 1 ? "" : "s"} will move to
+                  Uncategorized.
+                </>
+              ) : null}{" "}
+              This cannot be undone.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                disabled={Boolean(busyId)}
+                onClick={() => remove(confirmTarget)}
+                className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-medium text-white disabled:opacity-40"
+              >
+                {busyId === confirmTarget.id ? "Deleting…" : "Delete category"}
+              </button>
+              <button
+                type="button"
+                disabled={Boolean(busyId)}
+                onClick={() => setConfirmTarget(null)}
+                className="flex-1 rounded-lg border py-2 text-sm disabled:opacity-40"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }
