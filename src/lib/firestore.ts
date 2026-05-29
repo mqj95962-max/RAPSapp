@@ -721,7 +721,22 @@ export async function createFormalEvent(input: {
 }
 
 export async function deleteFormalEvent(formalEventId: string): Promise<void> {
-  await deleteDoc(doc(getDb(), "formalEvents", formalEventId));
+  const db = getDb();
+
+  const [eventsSnap, signupsSnap] = await Promise.all([
+    getDocs(
+      query(collection(db, "events"), where("formalEventId", "==", formalEventId))
+    ),
+    getDocs(collection(db, "formalEvents", formalEventId, "signups")),
+  ]);
+
+  const refsToDelete = [
+    doc(db, "formalEvents", formalEventId),
+    ...eventsSnap.docs.map((d) => d.ref),
+    ...signupsSnap.docs.map((d) => d.ref),
+  ];
+
+  await deleteDocRefs(refsToDelete);
 }
 
 export async function signUpForFormalEvent(

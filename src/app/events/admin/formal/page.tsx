@@ -422,7 +422,7 @@ function AdminFormalEventDetailModal({
   const remove = async () => {
     const message =
       signupCount > 0
-        ? "Members have signed up for this event. Delete it anyway? Their My events entries will remain."
+        ? "Delete this formal event and all member signups? Every linked entry will be removed from My events and admin coverage."
         : "Delete this formal event?";
     if (!window.confirm(message)) return;
     setBusy(true);
