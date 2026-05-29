@@ -144,6 +144,17 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   return mapUserProfile(uid, snap.data());
 }
 
+export async function setMemberAdminRole(
+  uid: string,
+  makeAdmin: boolean
+): Promise<void> {
+  await updateDoc(doc(getDb(), "users", uid), {
+    roles: makeAdmin ? ["member", "admin"] : ["member"],
+    isAdmin: false,
+    updatedAt: Date.now(),
+  });
+}
+
 export async function fetchAllUsers(): Promise<UserProfile[]> {
   const snap = await getDocs(collection(getDb(), "users"));
   return snap.docs

@@ -74,8 +74,7 @@ export default function MyLoansPage() {
           <p className="font-semibold">Loan saved — email to staff failed</p>
           <p className="mt-1">{notifyError}</p>
           <p className="mt-2 text-xs">
-            Staff can still see the request in Member loans. An admin can fix email under
-            Home → Email setup.
+            Staff can still see the request in Member loans.
           </p>
         </div>
       )}
