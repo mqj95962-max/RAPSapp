@@ -582,6 +582,10 @@ export async function markLoanReturned(loanId: string): Promise<void> {
   });
 }
 
+export async function permanentlyDeleteLoan(loanId: string): Promise<void> {
+  await deleteDoc(doc(getDb(), "loans", loanId));
+}
+
 export async function fetchAllEvents(): Promise<ClubEvent[]> {
   const snap = await getDocs(
     query(collection(getDb(), "events"), orderBy("eventDate", "desc"))

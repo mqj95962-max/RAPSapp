@@ -60,15 +60,17 @@ export default function ExportDataPage() {
   return (
     <AppShell title="Export data">
       <p className="text-sm text-zinc-500">
-        Download a formatted Excel workbook (.xlsx) with current Firestore data: members,
-        equipment, categories, loans, events, and formal events.
+        Download a formatted Excel workbook (.xlsx) organised like the app home
+        page: members, equipment, loans, and events coverage.
       </p>
 
       <ul className="mt-4 list-inside list-disc text-sm text-zinc-600 dark:text-zinc-400">
-        <li>Equipment grouped by category (active, then archived)</li>
-        <li>Status colours match the app (equipment, loans, events)</li>
-        <li>Summary sheet with record counts and a colour legend</li>
-        <li>Filters and column sizing on data sheets</li>
+        <li>Summary sheet with counts per app section and a colour legend</li>
+        <li>Members — loaning status, event count, and confirmed hours</li>
+        <li>Equipment — borrow list, reserved, other active, and archived (by category)</li>
+        <li>Loans — member loans queue, external loans, and loan history</li>
+        <li>Events — open signups and confirmed events (hours)</li>
+        <li>Formal events — signup totals with open vs confirmed breakdown</li>
       </ul>
 
       <button

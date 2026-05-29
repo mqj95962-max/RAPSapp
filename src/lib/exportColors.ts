@@ -36,6 +36,14 @@ export const EVENT_ROW_EXCEL = {
 export const CATEGORY_HEADER_EXCEL = style("FFE4E4E7", "FF18181B");
 export const SECTION_HEADER_EXCEL = style("FFD4D4D8", "FF18181B");
 export const SHEET_HEADER_EXCEL = style("FF18181B", "FFFFFFFF");
+/** Reserved equipment rows (admin reserve list). */
+export const RESERVED_EXCEL = style("FFDBEAFE", "FF1E3A8A");
+/** Member currently loaning badge. */
+export const LOANING_MEMBER_EXCEL = style("FFFEF3C7", "FF78350F");
+/** Admin role badge on members sheet. */
+export const ADMIN_ROLE_EXCEL = style("FFFEF3C7", "FF78350F");
+/** Regular member role badge. */
+export const MEMBER_ROLE_EXCEL = style("FFD1FAE5", "FF064E3B");
 
 export function applyCellStyle(
   cell: { fill?: unknown; font?: unknown },
