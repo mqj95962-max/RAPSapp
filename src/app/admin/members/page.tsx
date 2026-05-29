@@ -41,7 +41,6 @@ function ViewMembersContent() {
   const eventCountsByUserId = useMemo(() => {
     const counts = new Map<string, number>();
     for (const ev of events) {
-      if (ev.confirmed) continue;
       counts.set(ev.userId, (counts.get(ev.userId) ?? 0) + 1);
     }
     return counts;
@@ -50,7 +49,7 @@ function ViewMembersContent() {
   const eventHoursByUserId = useMemo(() => {
     const hours = new Map<string, number>();
     for (const ev of events) {
-      if (ev.confirmed) continue;
+      if (!ev.confirmed) continue;
       hours.set(ev.userId, (hours.get(ev.userId) ?? 0) + (ev.durationHours ?? 0));
     }
     return hours;
@@ -159,7 +158,7 @@ function ViewMembersContent() {
                     {eventCount} events
                   </span>
                   <span className="shrink-0 rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-900">
-                    {eventHours}h
+                    {eventHours}h confirmed
                   </span>
                   <span
                     className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${

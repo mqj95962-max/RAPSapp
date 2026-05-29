@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AdminGuard } from "@/components/AdminGuard";
+import { AdminEventDetailModal } from "@/components/events/AdminEventDetailModal";
+import { AdminEventSignupRow } from "@/components/events/AdminEventSignupRow";
 import { SearchBar } from "@/components/SearchBar";
 import { useAuth } from "@/context/AuthContext";
 import { groupEventsByDate, groupFormalEventsByDate } from "@/lib/events";
@@ -11,16 +13,10 @@ import {
   formatSignupCount,
   groupSignupsByFormalEvent,
 } from "@/lib/formalEvents";
-import {
-  confirmEventPhotos,
-  deleteEvent,
-  fetchAllEvents,
-  fetchFormalEvents,
-} from "@/lib/firestore";
-import { formatDate } from "@/lib/time";
+import { fetchAllEvents, fetchFormalEvents } from "@/lib/firestore";
 import type { ClubEvent, FormalEvent } from "@/lib/types";
 
-type CoverageTab = "signups" | "formal";
+type CoverageTab = "signups" | "confirmed" | "formal";
 
 export default function MemberEventsCoveragePage() {
   return (
@@ -51,27 +47,39 @@ function CoverageContent() {
     load();
   }, [load]);
 
-  const q = search.trim().toLowerCase();
-
-  const filteredSignups = events.filter(
-    (e) =>
-      !q ||
-      e.title.toLowerCase().includes(q) ||
-      e.userName.toLowerCase().includes(q)
-  );
-  const groupedSignups = groupEventsByDate(filteredSignups);
-
-  const formalSignups = useMemo(
-    () => events.filter((e) => e.formalEventId != null),
+  const pendingEvents = useMemo(
+    () => events.filter((e) => !e.confirmed),
     [events]
   );
+  const confirmedEvents = useMemo(
+    () => events.filter((e) => e.confirmed),
+    [events]
+  );
+
+  const q = search.trim().toLowerCase();
+
+  const filterBySearch = (list: ClubEvent[]) =>
+    list.filter(
+      (e) =>
+        !q ||
+        e.title.toLowerCase().includes(q) ||
+        e.userName.toLowerCase().includes(q)
+    );
+
+  const groupedSignups = groupEventsByDate(filterBySearch(pendingEvents));
+  const groupedConfirmed = groupEventsByDate(filterBySearch(confirmedEvents));
+
+  const formalSignupsPending = useMemo(
+    () => pendingEvents.filter((e) => e.formalEventId != null),
+    [pendingEvents]
+  );
   const signupGroups = useMemo(
-    () => groupSignupsByFormalEvent(formalSignups),
-    [formalSignups]
+    () => groupSignupsByFormalEvent(formalSignupsPending),
+    [formalSignupsPending]
   );
   const signupCounts = useMemo(
-    () => countSignupsByFormalEvent(formalSignups),
-    [formalSignups]
+    () => countSignupsByFormalEvent(formalSignupsPending),
+    [formalSignupsPending]
   );
 
   const filteredFormals = formalEvents.filter(
@@ -84,11 +92,18 @@ function CoverageContent() {
 
   return (
     <AppShell title="Member events coverage">
-      <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700">
+      <div className="flex flex-wrap gap-2 border-b border-zinc-200 dark:border-zinc-700">
         <TabButton
           active={tab === "signups"}
           onClick={() => setTab("signups")}
           label="All member signups"
+          count={pendingEvents.length}
+        />
+        <TabButton
+          active={tab === "confirmed"}
+          onClick={() => setTab("confirmed")}
+          label="Confirmed events"
+          count={confirmedEvents.length}
         />
         <TabButton
           active={tab === "formal"}
@@ -101,31 +116,62 @@ function CoverageContent() {
         value={search}
         onChange={setSearch}
         placeholder={
-          tab === "signups"
-            ? "Search member or event…"
-            : "Search formal events…"
+          tab === "formal"
+            ? "Search formal events…"
+            : "Search member or event…"
         }
         className="mt-4"
       />
 
-      {tab === "signups" ? (
+      {tab === "signups" && (
         <div className="mt-4 space-y-6">
+          <p className="text-sm text-zinc-500">
+            Open signups awaiting photos or confirmation. Confirmed events are in
+            the Confirmed events tab.
+          </p>
           {groupedSignups.map(({ date, label, events: dayEvents }) => (
             <section key={date}>
               <h3 className="text-sm font-semibold text-zinc-500">{label}</h3>
               <ul className="mt-2 space-y-2">
                 {dayEvents.map((ev) => (
-                  <SignupRow key={ev.id} event={ev} onSelect={setSelected} />
+                  <AdminEventSignupRow key={ev.id} event={ev} onSelect={setSelected} />
                 ))}
               </ul>
             </section>
           ))}
           {!groupedSignups.length && (
-            <p className="text-sm text-zinc-500">No events found.</p>
+            <p className="text-sm text-zinc-500">No open signups found.</p>
           )}
         </div>
-      ) : (
+      )}
+
+      {tab === "confirmed" && (
         <div className="mt-4 space-y-6">
+          <p className="text-sm text-zinc-500">
+            Confirmed coverage — archived here and counted toward member hours.
+          </p>
+          {groupedConfirmed.map(({ date, label, events: dayEvents }) => (
+            <section key={date}>
+              <h3 className="text-sm font-semibold text-zinc-500">{label}</h3>
+              <ul className="mt-2 space-y-2">
+                {dayEvents.map((ev) => (
+                  <AdminEventSignupRow key={ev.id} event={ev} onSelect={setSelected} />
+                ))}
+              </ul>
+            </section>
+          ))}
+          {!groupedConfirmed.length && (
+            <p className="text-sm text-zinc-500">No confirmed events yet.</p>
+          )}
+        </div>
+      )}
+
+      {tab === "formal" && (
+        <div className="mt-4 space-y-6">
+          <p className="text-sm text-zinc-500">
+            Formal event signups still needing action. Confirmed formal signups are
+            under Confirmed events.
+          </p>
           {groupedFormals.map(({ date, label, items }) => (
             <section key={date}>
               <h3 className="text-sm font-semibold text-zinc-500">{label}</h3>
@@ -153,7 +199,7 @@ function CoverageContent() {
                       {signups.length ? (
                         <ul className="mt-3 space-y-2">
                           {signups.map((ev) => (
-                            <SignupRow
+                            <AdminEventSignupRow
                               key={ev.id}
                               event={ev}
                               onSelect={setSelected}
@@ -162,7 +208,7 @@ function CoverageContent() {
                         </ul>
                       ) : (
                         <p className="mt-3 text-sm text-zinc-500">
-                          No member signups yet.
+                          No pending signups for this event.
                         </p>
                       )}
                     </div>
@@ -177,12 +223,12 @@ function CoverageContent() {
         </div>
       )}
 
-      {selected && (
-        <ArchivistEventModal
+      {selected && profile && (
+        <AdminEventDetailModal
           event={selected}
           onClose={() => setSelected(null)}
           onUpdated={load}
-          adminId={profile?.uid ?? ""}
+          adminId={profile.uid}
         />
       )}
     </AppShell>
@@ -193,10 +239,12 @@ function TabButton({
   active,
   onClick,
   label,
+  count,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
+  count?: number;
 }) {
   return (
     <button
@@ -209,127 +257,9 @@ function TabButton({
       }`}
     >
       {label}
-    </button>
-  );
-}
-
-function SignupRow({
-  event,
-  onSelect,
-}: {
-  event: ClubEvent;
-  onSelect: (event: ClubEvent) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(event)}
-      className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition ${
-        event.confirmed
-          ? "border-emerald-400 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/30"
-          : event.photosSubmitted
-            ? "border-blue-400 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30"
-            : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
-      }`}
-    >
-      <div>
-        <p className="font-medium">{event.title}</p>
-        <p className="text-sm text-zinc-500">
-          {event.userName} · {event.eventTime}
-          {event.formalEventId != null && (
-            <span className="ml-2 text-xs text-violet-700">Formal signup</span>
-          )}
-        </p>
-      </div>
-      {event.photosSubmitted && !event.confirmed && (
-        <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
-          Pending confirmation
-        </span>
-      )}
-      {event.confirmed && (
-        <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">
-          Confirmed
-        </span>
+      {count != null && (
+        <span className="ml-1.5 text-xs opacity-70">({count})</span>
       )}
     </button>
-  );
-}
-
-function ArchivistEventModal({
-  event,
-  onClose,
-  onUpdated,
-  adminId,
-}: {
-  event: ClubEvent;
-  onClose: () => void;
-  onUpdated: () => void;
-  adminId: string;
-}) {
-  const [busy, setBusy] = useState(false);
-
-  const confirm = async () => {
-    setBusy(true);
-    try {
-      await confirmEventPhotos(event.id, adminId);
-      onUpdated();
-      onClose();
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const remove = async () => {
-    const message = event.confirmed
-      ? "This event is confirmed and counts toward member hours. Delete it anyway?"
-      : "Delete this event? This cannot be undone.";
-    if (!window.confirm(message)) return;
-    setBusy(true);
-    try {
-      await deleteEvent(event.id);
-      onUpdated();
-      onClose();
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 dark:bg-zinc-900">
-        <h2 className="text-lg font-semibold">{event.title}</h2>
-        <p className="text-sm text-zinc-500">Member: {event.userName}</p>
-        <p className="mt-2 text-sm">
-          {formatDate(event.eventDate)} at {event.eventTime} · {event.durationHours}h
-        </p>
-        {event.formalEventId != null && (
-          <p className="mt-1 text-xs text-violet-700">Signed up via formal event</p>
-        )}
-        <p className="mt-2 text-sm">
-          Photos submitted: {event.photosSubmitted ? "Yes" : "No"}
-        </p>
-        {event.photosSubmitted && !event.confirmed && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={confirm}
-            className="mt-4 w-full rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white disabled:opacity-40"
-          >
-            Confirm photos submitted
-          </button>
-        )}
-        <button
-          type="button"
-          disabled={busy}
-          onClick={remove}
-          className="mt-3 w-full rounded-lg border border-red-200 py-2 text-sm font-medium text-red-700 disabled:opacity-40"
-        >
-          Delete event
-        </button>
-        <button type="button" onClick={onClose} className="mt-3 w-full text-sm text-zinc-500">
-          Close
-        </button>
-      </div>
-    </div>
   );
 }
