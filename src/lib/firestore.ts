@@ -103,6 +103,8 @@ function mapFormalEvent(id: string, data: DocumentData): FormalEvent {
     signupCount: data.signupCount ?? 0,
     createdAt: data.createdAt ?? 0,
     createdBy: data.createdBy ?? "",
+    completedAt: data.completedAt ?? null,
+    completedBy: data.completedBy ?? null,
   };
 }
 
@@ -716,6 +718,8 @@ export async function createFormalEvent(input: {
     ...input,
     signupCount: 0,
     createdAt: now,
+    completedAt: null,
+    completedBy: null,
   });
   return ref.id;
 }
@@ -737,6 +741,16 @@ export async function deleteFormalEvent(formalEventId: string): Promise<void> {
   ];
 
   await deleteDocRefs(refsToDelete);
+}
+
+export async function completeFormalEvent(
+  formalEventId: string,
+  completedBy: string
+): Promise<void> {
+  await updateDoc(doc(getDb(), "formalEvents", formalEventId), {
+    completedAt: Date.now(),
+    completedBy,
+  });
 }
 
 export async function signUpForFormalEvent(
@@ -786,6 +800,9 @@ export async function signUpForFormalEvent(
     }
 
     const formal = mapFormalEvent(formalEventId, formalSnap.data());
+    if (formal.completedAt != null) {
+      throw createFormalSignupError("This event is no longer open for signups.");
+    }
     if (formal.maxSignups != null && formal.signupCount >= formal.maxSignups) {
       throw createFormalSignupError("This event is full.");
     }

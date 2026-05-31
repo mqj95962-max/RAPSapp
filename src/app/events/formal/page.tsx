@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   countSignupsByFormalEvent,
   formatSignupCount,
+  isFormalEventCompleted,
   isFormalEventFull,
   isFormalSignupError,
   memberSignedUpForFormal,
@@ -36,7 +37,7 @@ export default function FormalEventsPage() {
       fetchFormalEvents(),
       fetchAllEvents(),
     ]);
-    setFormalEvents(events);
+    setFormalEvents(events.filter((e) => !isFormalEventCompleted(e)));
     setAllSignups(memberEvents.filter((e) => e.formalEventId != null));
     if (profile) {
       setUserEvents(memberEvents.filter((e) => e.userId === profile.uid));

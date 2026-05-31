@@ -101,4 +101,7 @@ export interface FormalEvent {
   signupCount: number;
   createdAt: number;
   createdBy: string;
+  /** Set when exco archives the event on coverage page; does not confirm member hours. */
+  completedAt: number | null;
+  completedBy: string | null;
 }

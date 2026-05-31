@@ -64,3 +64,7 @@ export function memberSignedUpForFormal(
 export function formalEventSummary(formal: FormalEvent): string {
   return `${formal.eventTime} · ${formal.durationHours}h`;
 }
+
+export function isFormalEventCompleted(formal: FormalEvent): boolean {
+  return formal.completedAt != null;
+}
