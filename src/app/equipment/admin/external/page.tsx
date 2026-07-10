@@ -34,7 +34,7 @@ export default function ExternalLoansPage() {
 
 function ExternalLoansContent() {
   const { profile } = useAuth();
-  const { items, addItem, removeItem, clear } = useExternalCart();
+  const { items, addItem, removeItem, clear, hasItem } = useExternalCart();
   const { now } = useServerTime();
   const router = useRouter();
   const { equipment: allEquipment, loading: eqLoading, error: eqError } =
@@ -44,7 +44,10 @@ function ExternalLoansContent() {
   const { loans, error: loanError } = useAllLoansLive();
   const [search, setSearch] = useState("");
   const [details, setDetails] = useState("");
-  const [toast, setToast] = useState("");
+  const [feedback, setFeedback] = useState<{
+    tone: "error" | "success";
+    message: string;
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<CategoryTabId>("all");
 
@@ -88,6 +91,21 @@ function ExternalLoansContent() {
 
   const syncError = eqError || catError || loanError;
 
+  const addToCart = (item: (typeof equipment)[number]) => {
+    if (hasItem(item.id)) {
+      setFeedback({
+        tone: "error",
+        message: `"${item.name}" is already in the external cart.`,
+      });
+      return;
+    }
+    addItem(item);
+    setFeedback({
+      tone: "success",
+      message: `Added "${item.name}" to the external cart.`,
+    });
+  };
+
   const submit = async () => {
     if (!profile || !items.length || !details.trim()) return;
     setSubmitting(true);
@@ -105,12 +123,20 @@ function ExternalLoansContent() {
         externalDetails: details.trim(),
       });
       const notifyError = await sendNotification("loan_requested", { loanId });
-      if (notifyError) setToast(`Loan saved. Email failed: ${notifyError}`);
+      if (notifyError) {
+        setFeedback({
+          tone: "error",
+          message: `Loan saved. Email failed: ${notifyError}`,
+        });
+      }
       clear();
       setDetails("");
       router.push("/equipment/admin/member-loans");
     } catch {
-      setToast("Could not submit external loan. Check Firestore rules.");
+      setFeedback({
+        tone: "error",
+        message: "Could not submit external loan. Check Firestore rules.",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -123,8 +149,25 @@ function ExternalLoansContent() {
         Equipment list syncs live for all accounts.
       </p>
       <LiveSyncBanner error={syncError} />
+      {items.length > 0 && (
+        <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
+          External cart: {items.length} item{items.length === 1 ? "" : "s"} — scroll
+          down to review and submit.
+        </p>
+      )}
       <SearchBar value={search} onChange={setSearch} className="mt-4" />
-      {toast && <p className="mt-2 text-sm text-red-600">{toast}</p>}
+      {feedback && (
+        <p
+          className={`mt-2 rounded-lg px-3 py-2 text-sm ${
+            feedback.tone === "success"
+              ? "bg-emerald-50 text-emerald-800"
+              : "bg-red-50 text-red-800"
+          }`}
+          role="alert"
+        >
+          {feedback.message}
+        </p>
+      )}
 
       <div className="mt-6 border-b border-zinc-200 dark:border-zinc-700">
         <div className="flex gap-1 overflow-x-auto pb-0">
@@ -145,14 +188,21 @@ function ExternalLoansContent() {
           ))}
         </div>
       </div>
-      <EquipmentList
-        grouped={grouped}
-        loans={loans}
-        now={now}
-        search={search}
-        onAdd={addItem}
-        onUnavailable={(name) => setToast(`"${name}" is already loaned out.`)}
-      />
+      <div className="mt-4">
+        {eqLoading || catLoading ? (
+          <p className="text-sm text-zinc-500">Loading equipment…</p>
+        ) : (
+          <EquipmentList
+            grouped={grouped}
+            loans={loans}
+            now={now}
+            search={search}
+            allowAddWhenLoaned
+            isInCart={hasItem}
+            onAdd={addToCart}
+          />
+        )}
+      </div>
       {items.length > 0 && (
         <div className="mt-8 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
           <h3 className="font-semibold">External loan cart ({items.length})</h3>

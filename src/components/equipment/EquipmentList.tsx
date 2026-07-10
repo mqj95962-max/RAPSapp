@@ -26,8 +26,9 @@ interface EquipmentListProps {
   search: string;
   onAdd?: (item: Equipment) => void;
   onUnavailable?: (name: string) => void;
+  isInCart?: (id: string) => boolean;
   showAddButton?: boolean;
-  /** When true, allow + even if item is on loan (admin reserve flow). */
+  /** When true, allow + even if item is on loan (admin reserve / external flows). */
   allowAddWhenLoaned?: boolean;
 }
 
@@ -38,6 +39,7 @@ export function EquipmentList({
   search,
   onAdd,
   onUnavailable,
+  isInCart,
   showAddButton = true,
   allowAddWhenLoaned = false,
 }: EquipmentListProps) {
@@ -87,24 +89,30 @@ export function EquipmentList({
                         {AVAIL_LABELS[avail]}
                       </span>
                       {showAddButton && onAdd && (
-                        <button
-                          type="button"
-                          aria-label={`Add ${item.name} to cart`}
-                          onClick={() => {
-                            if (!canAdd) {
-                              onUnavailable?.(item.name);
-                              return;
-                            }
-                            onAdd(item);
-                          }}
-                          className={`flex h-8 w-8 items-center justify-center rounded-full text-lg font-bold ${
-                            canAdd
-                              ? "bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
-                              : "bg-zinc-200 text-zinc-400 cursor-not-allowed"
-                          }`}
-                        >
-                          +
-                        </button>
+                        isInCart?.(item.id) ? (
+                          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                            In cart
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            aria-label={`Add ${item.name} to cart`}
+                            onClick={() => {
+                              if (!canAdd) {
+                                onUnavailable?.(item.name);
+                                return;
+                              }
+                              onAdd(item);
+                            }}
+                            className={`flex h-8 w-8 items-center justify-center rounded-full text-lg font-bold ${
+                              canAdd
+                                ? "bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
+                                : "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                            }`}
+                          >
+                            +
+                          </button>
+                        )
                       )}
                     </div>
                   </li>
