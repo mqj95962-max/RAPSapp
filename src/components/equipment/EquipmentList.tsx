@@ -27,6 +27,7 @@ interface EquipmentListProps {
   onAdd?: (item: Equipment) => void;
   onUnavailable?: (name: string) => void;
   isInCart?: (id: string) => boolean;
+  inCartLabel?: string;
   showAddButton?: boolean;
   /** When true, allow + even if item is on loan (admin reserve / external flows). */
   allowAddWhenLoaned?: boolean;
@@ -40,6 +41,7 @@ export function EquipmentList({
   onAdd,
   onUnavailable,
   isInCart,
+  inCartLabel = "In cart",
   showAddButton = true,
   allowAddWhenLoaned = false,
 }: EquipmentListProps) {
@@ -91,7 +93,7 @@ export function EquipmentList({
                       {showAddButton && onAdd && (
                         isInCart?.(item.id) ? (
                           <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
-                            In cart
+                            {inCartLabel}
                           </span>
                         ) : (
                           <button

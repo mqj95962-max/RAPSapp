@@ -21,14 +21,17 @@ import {
 } from "@/lib/equipment";
 
 export default function BorrowPage() {
-  const { addItem, items } = useMemberCart();
+  const { addItem, items, hasItem } = useMemberCart();
   const { now } = useServerTime();
   const { equipment: allEquipment, loading: eqLoading, error: eqError } =
     useEquipmentLive();
   const { categories, loading: catLoading, error: catError } = useCategoriesLive();
   const { loans, error: loanError } = useAllLoansLive();
   const [search, setSearch] = useState("");
-  const [toast, setToast] = useState("");
+  const [feedback, setFeedback] = useState<{
+    tone: "error" | "success";
+    message: string;
+  } | null>(null);
   const [activeTab, setActiveTab] = useState<CategoryTabId>("all");
 
   const equipment = useMemo(
@@ -69,6 +72,21 @@ export default function BorrowPage() {
   );
   const syncError = eqError || catError || loanError;
 
+  const addToCart = (item: (typeof equipment)[number]) => {
+    if (hasItem(item.id)) {
+      setFeedback({
+        tone: "error",
+        message: `"${item.name}" is already in your cart.`,
+      });
+      return;
+    }
+    addItem(item);
+    setFeedback({
+      tone: "success",
+      message: `Added "${item.name}" to your cart.`,
+    });
+  };
+
   return (
     <AppShell title="Borrow equipment">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -84,9 +102,16 @@ export default function BorrowPage() {
       </div>
       <LiveSyncBanner error={syncError} />
       <SearchBar value={search} onChange={setSearch} />
-      {toast && (
-        <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
-          {toast}
+      {feedback && (
+        <p
+          className={`mt-3 rounded-lg px-3 py-2 text-sm ${
+            feedback.tone === "success"
+              ? "bg-emerald-50 text-emerald-800"
+              : "bg-red-50 text-red-800"
+          }`}
+          role="alert"
+        >
+          {feedback.message}
         </p>
       )}
 
@@ -118,9 +143,13 @@ export default function BorrowPage() {
             loans={loans}
             now={now}
             search={search}
-            onAdd={addItem}
+            isInCart={hasItem}
+            onAdd={addToCart}
             onUnavailable={(name) =>
-              setToast(`"${name}" is already loaned out or unavailable.`)
+              setFeedback({
+                tone: "error",
+                message: `"${name}" is already loaned out or unavailable.`,
+              })
             }
           />
         )}

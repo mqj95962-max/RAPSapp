@@ -149,12 +149,44 @@ function ExternalLoansContent() {
         Equipment list syncs live for all accounts.
       </p>
       <LiveSyncBanner error={syncError} />
+
       {items.length > 0 && (
-        <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
-          External cart: {items.length} item{items.length === 1 ? "" : "s"} — scroll
-          down to review and submit.
-        </p>
+        <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+          <h3 className="font-semibold">External loan cart ({items.length})</h3>
+          <ul className="mt-2 space-y-1 text-sm">
+            {items.map((i) => (
+              <li key={i.id} className="flex items-center justify-between gap-2">
+                <span>
+                  {i.name} ({i.equipmentId})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeItem(i.id)}
+                  className="text-red-600 hover:underline"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+          <textarea
+            className="mt-3 w-full rounded-lg border px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800"
+            rows={3}
+            placeholder="Contact details, organisation, notes…"
+            value={details}
+            onChange={(e) => setDetails(e.target.value)}
+          />
+          <button
+            type="button"
+            disabled={submitting || !details.trim()}
+            onClick={submit}
+            className="mt-3 w-full rounded-lg bg-zinc-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
+          >
+            Confirm external loan request
+          </button>
+        </div>
       )}
+
       <SearchBar value={search} onChange={setSearch} className="mt-4" />
       {feedback && (
         <p
@@ -203,42 +235,6 @@ function ExternalLoansContent() {
           />
         )}
       </div>
-      {items.length > 0 && (
-        <div className="mt-8 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-          <h3 className="font-semibold">External loan cart ({items.length})</h3>
-          <ul className="mt-2 space-y-1 text-sm">
-            {items.map((i) => (
-              <li key={i.id} className="flex items-center justify-between gap-2">
-                <span>
-                  {i.name} ({i.equipmentId})
-                </span>
-                <button
-                  type="button"
-                  onClick={() => removeItem(i.id)}
-                  className="text-red-600 hover:underline"
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-          <textarea
-            className="mt-3 w-full rounded-lg border px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800"
-            rows={3}
-            placeholder="Contact details, organisation, notes…"
-            value={details}
-            onChange={(e) => setDetails(e.target.value)}
-          />
-          <button
-            type="button"
-            disabled={submitting || !details.trim()}
-            onClick={submit}
-            className="mt-3 w-full rounded-lg bg-zinc-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
-          >
-            Confirm external loan request
-          </button>
-        </div>
-      )}
     </AppShell>
   );
 }

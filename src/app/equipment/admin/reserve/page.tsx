@@ -50,6 +50,10 @@ function ReserveEquipmentContent() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [feedback, setFeedback] = useState<{
+    tone: "error" | "success";
+    message: string;
+  } | null>(null);
 
   const availableToReserve = useMemo(
     () => allEquipment.filter((e) => canBeAddedToReserveList(e)),
@@ -104,11 +108,21 @@ function ReserveEquipmentContent() {
   const now = useMemo(() => new Date(), []);
 
   const addToStaging = (item: Equipment) => {
-    setStaging((prev) => {
-      if (prev.some((i) => i.id === item.id)) return prev;
-      return [...prev, item];
+    if (staging.some((i) => i.id === item.id)) {
+      setFeedback({
+        tone: "error",
+        message: `"${item.name}" is already on the reserve list.`,
+      });
+      return;
+    }
+    setStaging((prev) => [...prev, item]);
+    setFeedback({
+      tone: "success",
+      message: `Added "${item.name}" to the reserve list.`,
     });
   };
+
+  const isInStaging = (id: string) => staging.some((i) => i.id === id);
 
   const removeFromStaging = (id: string) => {
     setStaging((prev) => prev.filter((i) => i.id !== id));
@@ -222,6 +236,18 @@ function ReserveEquipmentContent() {
           {error}
         </p>
       )}
+      {feedback && tab === "add" && (
+        <p
+          className={`mt-4 rounded-lg px-4 py-3 text-sm ${
+            feedback.tone === "success"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-900"
+              : "border border-red-200 bg-red-50 text-red-800"
+          }`}
+          role="alert"
+        >
+          {feedback.message}
+        </p>
+      )}
 
       {tab === "add" ? (
         <>
@@ -299,6 +325,8 @@ function ReserveEquipmentContent() {
                 now={now}
                 search={search}
                 allowAddWhenLoaned
+                isInCart={isInStaging}
+                inCartLabel="In list"
                 onAdd={addToStaging}
               />
             )}
