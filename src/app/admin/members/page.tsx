@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { LiveSyncBanner } from "@/components/LiveSyncBanner";
 import { SearchBar } from "@/components/SearchBar";
 import { useAuth } from "@/context/AuthContext";
 import { useAllEventsLive, useAllLoansLive, useAllUsersLive } from "@/hooks/useLiveData";
-import { isMemberLoaningEquipment } from "@/lib/loans";
+import { getMemberProfileSummary } from "@/lib/memberActivity";
 import { setMemberAdminRole } from "@/lib/firestore";
 import { isAdmin } from "@/lib/roles";
 import { useServerTime } from "@/context/ServerTimeContext";
@@ -28,32 +29,19 @@ function ViewMembersContent() {
 
   const staffCount = useMemo(() => users.filter((u) => isAdmin(u)).length, [users]);
 
-  const loaningUserIds = useMemo(() => {
-    const ids = new Set<string>();
+  const profileSummaries = useMemo(() => {
+    const summaries = new Map<
+      string,
+      ReturnType<typeof getMemberProfileSummary>
+    >();
     for (const user of users) {
-      if (isMemberLoaningEquipment(user.uid, loans, now)) {
-        ids.add(user.uid);
-      }
+      summaries.set(
+        user.uid,
+        getMemberProfileSummary(user.uid, events, loans, now)
+      );
     }
-    return ids;
-  }, [users, loans, now]);
-
-  const eventCountsByUserId = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const ev of events) {
-      counts.set(ev.userId, (counts.get(ev.userId) ?? 0) + 1);
-    }
-    return counts;
-  }, [events]);
-
-  const eventHoursByUserId = useMemo(() => {
-    const hours = new Map<string, number>();
-    for (const ev of events) {
-      if (!ev.confirmed) continue;
-      hours.set(ev.userId, (hours.get(ev.userId) ?? 0) + (ev.durationHours ?? 0));
-    }
-    return hours;
-  }, [events]);
+    return summaries;
+  }, [users, events, loans, now]);
 
   const q = search.trim().toLowerCase();
   const filtered = users.filter((user) => {
@@ -118,11 +106,12 @@ function ViewMembersContent() {
       ) : (
         <ul className="mt-4 space-y-2">
           {filtered.map((user) => {
-            const loaning = loaningUserIds.has(user.uid);
+            const summary = profileSummaries.get(user.uid);
+            const loaning = summary?.loans.loaningNow ?? false;
             const displayName = user.displayName.trim() || "No name set";
             const email = user.email.trim() || "No email";
-            const eventCount = eventCountsByUserId.get(user.uid) ?? 0;
-            const eventHours = eventHoursByUserId.get(user.uid) ?? 0;
+            const eventCount = summary?.events.totalEvents ?? 0;
+            const eventHours = summary?.events.confirmedHours ?? 0;
             const staff = isAdmin(user);
             const isSelf = user.uid === profile?.uid;
             const busy = busyUid === user.uid;
@@ -169,6 +158,12 @@ function ViewMembersContent() {
                   >
                     {staff ? "Admin" : "Member"}
                   </span>
+                  <Link
+                    href={`/admin/members/${user.uid}`}
+                    className="rounded-lg border border-blue-200 px-2.5 py-1 text-xs font-medium text-blue-800 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-200 dark:hover:bg-blue-950/30"
+                  >
+                    View profile
+                  </Link>
                   {!isSelf && (
                     staff ? (
                       <button

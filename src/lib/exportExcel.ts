@@ -23,9 +23,13 @@ import {
 } from "./equipment";
 import {
   effectiveLoanStatus,
-  isMemberLoaningEquipment,
   LOAN_STATUS_LABELS,
 } from "./loans";
+import {
+  buildMemberActivityLedger,
+  formatMemberRoles,
+  getMemberProfileSummary,
+} from "./memberActivity";
 import { isAdmin } from "./roles";
 import { formatTimestamp } from "./time";
 import type { LoanStatus } from "./types";
@@ -486,20 +490,6 @@ function addEventsSheet(workbook: ExcelJS.Workbook, events: ClubEvent[], now: Da
   autoColumnWidths(sheet);
 }
 
-function memberEventStats(
-  userId: string,
-  events: ClubEvent[]
-): { eventCount: number; confirmedHours: number } {
-  let eventCount = 0;
-  let confirmedHours = 0;
-  for (const ev of events) {
-    if (ev.userId !== userId) continue;
-    eventCount++;
-    if (ev.confirmed) confirmedHours += ev.durationHours ?? 0;
-  }
-  return { eventCount, confirmedHours };
-}
-
 function addMembersSheet(
   workbook: ExcelJS.Workbook,
   users: UserProfile[],
@@ -510,10 +500,23 @@ function addMembersSheet(
   const headers = [
     "Display name",
     "Email",
-    "Role",
+    "Roles",
+    "Role summary",
     "Loaning equipment",
-    "Events",
+    "Total events",
+    "Incomplete events",
+    "Pending confirmation",
+    "Confirmed events",
     "Confirmed hours",
+    "Formal signups",
+    "Self-added events",
+    "Current loans",
+    "Pending loans",
+    "Approved loans",
+    "Active loans",
+    "Overdue loans",
+    "Returned loans",
+    "Denied loans",
     "Profile complete",
     "User ID",
     "Created",
@@ -529,30 +532,91 @@ function addMembersSheet(
     (a.displayName || a.email).localeCompare(b.displayName || b.email)
   );
 
-  const roleCol = 3;
-  const loaningCol = 4;
+  const roleSummaryCol = 4;
+  const loaningCol = 5;
   for (const user of sorted) {
-    const loaning = isMemberLoaningEquipment(user.uid, loans, now);
-    const { eventCount, confirmedHours } = memberEventStats(user.uid, events);
+    const summary = getMemberProfileSummary(user.uid, events, loans, now);
     const row = sheet.addRow([
       user.displayName,
       user.email,
+      formatMemberRoles(user),
       isAdmin(user) ? "Admin" : "Member",
-      loaning ? "Yes" : "No",
-      eventCount,
-      confirmedHours,
+      summary.loans.loaningNow ? "Yes" : "No",
+      summary.events.totalEvents,
+      summary.events.incompleteEvents,
+      summary.events.pendingConfirmationEvents,
+      summary.events.confirmedEvents,
+      summary.events.confirmedHours,
+      summary.events.formalEvents,
+      summary.events.selfAddedEvents,
+      summary.loans.currentLoans,
+      summary.loans.pending,
+      summary.loans.approved,
+      summary.loans.active,
+      summary.loans.overdue,
+      summary.loans.returned,
+      summary.loans.denied,
       user.profileComplete ? "Yes" : "No",
       user.uid,
       formatTimestamp(user.createdAt),
       formatTimestamp(user.updatedAt),
     ]);
-    applyCellStyle(row.getCell(roleCol), isAdmin(user) ? ADMIN_ROLE_EXCEL : MEMBER_ROLE_EXCEL);
-    if (loaning) {
+    applyCellStyle(
+      row.getCell(roleSummaryCol),
+      isAdmin(user) ? ADMIN_ROLE_EXCEL : MEMBER_ROLE_EXCEL
+    );
+    if (summary.loans.loaningNow) {
       applyCellStyle(row.getCell(loaningCol), LOANING_MEMBER_EXCEL);
     }
   }
 
   if (users.length) {
+    sheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: headers.length },
+    };
+  }
+  autoColumnWidths(sheet);
+}
+
+function addMemberActivitySheet(
+  workbook: ExcelJS.Workbook,
+  users: UserProfile[],
+  events: ClubEvent[],
+  loans: Loan[],
+  now: Date
+): void {
+  const headers = [
+    "Activity date",
+    "Member",
+    "User ID",
+    "Type",
+    "Status",
+    "Details",
+    "Confirmed hours",
+    "Record ID",
+  ];
+  const sheet = workbook.addWorksheet("Member activity", {
+    properties: { defaultRowHeight: 18 },
+  });
+  sheet.addRow(headers);
+  styleSheetHeaderRow(sheet, headers.length);
+
+  const ledger = buildMemberActivityLedger(users, events, loans, now);
+  for (const entry of ledger) {
+    sheet.addRow([
+      entry.activityDate,
+      entry.memberName,
+      entry.userId,
+      entry.activityType,
+      entry.status,
+      entry.details,
+      entry.hours,
+      entry.recordId,
+    ]);
+  }
+
+  if (ledger.length) {
     sheet.autoFilter = {
       from: { row: 1, column: 1 },
       to: { row: 1, column: headers.length },
@@ -712,6 +776,7 @@ export async function buildClubExportWorkbook(data: ClubExportData): Promise<Arr
 
   const summaryRows: ([string, number | string] | null)[] = [
     ["Club admin → View members", data.users.length],
+    ["Club admin → Member activity ledger rows", data.events.length + data.loans.length],
     null,
     ["Equipment → Borrow list", equipmentCounts.borrowList],
     ["Equipment → Reserve equipment", equipmentCounts.reserved],
@@ -737,7 +802,8 @@ export async function buildClubExportWorkbook(data: ClubExportData): Promise<Arr
 
   summary.addRow([]);
   summary.addRow(["Workbook sheets", ""]);
-  summary.addRow(["Members", "View members stats and roles"]);
+  summary.addRow(["Members", "Individual member profile rollups and activity counts"]);
+  summary.addRow(["Member activity", "Chronological event and loan ledger — filter by User ID"]);
   summary.addRow(["Equipment", "Borrow list, reserved, other active, archived — by category"]);
   summary.addRow(["Loans", "Member loans, external loans, loan history"]);
   summary.addRow(["Events", "Open signups and confirmed events"]);
@@ -754,6 +820,13 @@ export async function buildClubExportWorkbook(data: ClubExportData): Promise<Arr
   summary.getColumn(2).width = 52;
 
   addMembersSheet(workbook, data.users, data.loans, data.events, data.exportedAt);
+  addMemberActivitySheet(
+    workbook,
+    data.users,
+    data.events,
+    data.loans,
+    data.exportedAt
+  );
   addEquipmentSheet(
     workbook,
     data.categories,
