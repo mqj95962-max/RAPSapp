@@ -1,4 +1,4 @@
-import { addDays, isAfter, parseISO, startOfDay } from "date-fns";
+import { addDays, isAfter, isValid, parseISO, startOfDay } from "date-fns";
 
 export const LOAN_PERIOD_DAYS = 7;
 
@@ -22,8 +22,9 @@ export function computeReturnDate(pickupDate: string): string {
 
 export function isOverdue(returnDate: string | null, now: Date): boolean {
   if (!returnDate) return false;
-  const due = startOfDay(parseISO(returnDate));
-  return isAfter(startOfDay(now), due);
+  const parsed = parseISO(returnDate);
+  if (!isValid(parsed)) return false;
+  return isAfter(startOfDay(now), startOfDay(parsed));
 }
 
 export function formatTimestamp(ts: number): string {
@@ -31,7 +32,9 @@ export function formatTimestamp(ts: number): string {
 }
 
 export function formatDate(date: string): string {
-  return parseISO(date).toLocaleDateString(undefined, {
+  const parsed = parseISO(date);
+  if (!isValid(parsed)) return date || "No date";
+  return parsed.toLocaleDateString(undefined, {
     weekday: "short",
     year: "numeric",
     month: "short",

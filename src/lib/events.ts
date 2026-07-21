@@ -1,26 +1,36 @@
-import { addDays, isBefore, parseISO, startOfDay } from "date-fns";
+import { addDays, isBefore, isValid, parseISO, startOfDay } from "date-fns";
 import type { ClubEvent } from "./types";
 import { formatDate } from "./time";
 
 export const PHOTO_SUBMISSION_DAYS = 7;
 
-/** Last calendar day members may submit photos (event date + 7 days). */
+/**
+ * Last calendar day members may submit photos (event date + 7 days).
+ * Returns "" when the event date is missing or malformed so a single bad
+ * record cannot crash pages that render many events.
+ */
 export function photoSubmissionDueDate(eventDate: string): string {
-  return addDays(startOfDay(parseISO(eventDate)), PHOTO_SUBMISSION_DAYS)
+  const parsed = parseISO(eventDate);
+  if (!isValid(parsed)) return "";
+  return addDays(startOfDay(parsed), PHOTO_SUBMISSION_DAYS)
     .toISOString()
     .slice(0, 10);
 }
 
 export function formatPhotoSubmissionDueDate(eventDate: string): string {
-  return formatDate(photoSubmissionDueDate(eventDate));
+  const due = photoSubmissionDueDate(eventDate);
+  return due ? formatDate(due) : "an unknown date";
 }
 
 /** True when photos are not in and today is on or after the due date. */
 export function isPhotoSubmissionOverdue(event: ClubEvent, now: Date): boolean {
   if (event.photosSubmitted || event.confirmed) return false;
-  const due = startOfDay(parseISO(photoSubmissionDueDate(event.eventDate)));
+  const due = photoSubmissionDueDate(event.eventDate);
+  if (!due) return false;
+  const dueDate = startOfDay(parseISO(due));
+  if (!isValid(dueDate)) return false;
   const today = startOfDay(now);
-  return !isBefore(today, due);
+  return !isBefore(today, dueDate);
 }
 
 export interface DateGroup<T> {
