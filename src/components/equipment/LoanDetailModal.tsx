@@ -1,14 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import type { Loan, LoanStatus } from "@/lib/types";
+import type { Equipment, Loan, LoanEquipmentItem, LoanStatus } from "@/lib/types";
 import {
   approveLoan,
   denyLoan,
   extendLoan,
   markLoanReturned,
   activateLoan,
+  updateLoanEquipment,
 } from "@/lib/firestore";
+import {
+  filterEquipmentSearch,
+  getEquipmentAvailabilityExcludingLoan,
+  isBorrowable,
+} from "@/lib/equipment";
 import { effectiveLoanStatus, LOAN_STATUS_LABELS } from "@/lib/loans";
 import { formatDate, formatTimestamp } from "@/lib/time";
 import { useAuth } from "@/context/AuthContext";
@@ -25,6 +31,8 @@ interface LoanDetailModalProps {
   loan: Loan;
   now: Date;
   isAdmin: boolean;
+  allEquipment?: Equipment[];
+  allLoans?: Loan[];
   onClose: () => void;
   onUpdated: () => void;
 }
@@ -33,6 +41,8 @@ export function LoanDetailModal({
   loan,
   now,
   isAdmin,
+  allEquipment = [],
+  allLoans = [],
   onClose,
   onUpdated,
 }: LoanDetailModalProps) {
@@ -44,9 +54,57 @@ export function LoanDetailModal({
   const [extensionNote, setExtensionNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [editingEquipment, setEditingEquipment] = useState(false);
+  const [equipmentSearch, setEquipmentSearch] = useState("");
+  const [editedEquipment, setEditedEquipment] = useState<LoanEquipmentItem[]>(
+    loan.equipment
+  );
 
   const canApprove = Boolean(pickupDate && note.trim() && !busy);
   const canDeny = Boolean(note.trim() && !busy);
+  const canEditEquipment =
+    isAdmin &&
+    (status === "pending" ||
+      status === "approved" ||
+      status === "active" ||
+      status === "overdue");
+  const editedEquipmentIds = new Set(
+    editedEquipment.map((item) => item.equipmentDocId)
+  );
+  const equipmentOptions = filterEquipmentSearch(
+    allEquipment.filter(
+      (item) =>
+        !item.deletedAt &&
+        !item.reservedAt &&
+        isBorrowable(item.status) &&
+        !editedEquipmentIds.has(item.id)
+    ),
+    equipmentSearch
+  );
+
+  const addEquipment = (item: Equipment) => {
+    const availability = getEquipmentAvailabilityExcludingLoan(
+      item.id,
+      allLoans,
+      now,
+      loan.id
+    );
+    if (availability !== "available") {
+      setError(
+        `${item.name} is already assigned to another approved or active loan.`
+      );
+      return;
+    }
+    setError("");
+    setEditedEquipment((current) => [
+      ...current,
+      {
+        equipmentDocId: item.id,
+        equipmentId: item.equipmentId,
+        name: item.name,
+      },
+    ]);
+  };
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -98,11 +156,28 @@ export function LoanDetailModal({
             </div>
           )}
           <div>
-            <dt className="text-zinc-500">Equipment</dt>
+            <dt className="flex items-center justify-between gap-3 text-zinc-500">
+              <span>Equipment</span>
+              {canEditEquipment && !editingEquipment && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setEditedEquipment(loan.equipment);
+                    setEquipmentSearch("");
+                    setError("");
+                    setEditingEquipment(true);
+                  }}
+                  className="font-medium text-blue-700 disabled:opacity-40"
+                >
+                  Edit equipment
+                </button>
+              )}
+            </dt>
             <dd>
-              <ul className="list-inside list-disc">
+              <ul className="mt-1 space-y-1">
                 {loan.equipment.map((e) => (
-                  <li key={e.equipmentDocId}>
+                  <li key={e.equipmentDocId} className="list-inside list-disc">
                     {e.name} ({e.equipmentId})
                   </li>
                 ))}
@@ -122,6 +197,114 @@ export function LoanDetailModal({
             </div>
           )}
         </dl>
+
+        {editingEquipment && (
+          <div className="mt-4 space-y-3 rounded-lg border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800 dark:bg-blue-950/20">
+            <div>
+              <h3 className="text-sm font-semibold">Edit loan equipment</h3>
+              <p className="mt-1 text-xs text-zinc-500">
+                Members cannot access this editor. Changes apply only to this loan.
+              </p>
+            </div>
+            <ul className="space-y-2">
+              {editedEquipment.map((item) => (
+                <li
+                  key={item.equipmentDocId}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm dark:bg-zinc-900"
+                >
+                  <span>
+                    {item.name} ({item.equipmentId})
+                  </span>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      setEditedEquipment((current) =>
+                        current.filter(
+                          (entry) =>
+                            entry.equipmentDocId !== item.equipmentDocId
+                        )
+                      )
+                    }
+                    className="shrink-0 text-xs font-medium text-red-700 disabled:opacity-40"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {!editedEquipment.length && (
+              <p className="text-sm font-medium text-red-700">
+                Add at least one item before saving.
+              </p>
+            )}
+            <label className="block text-sm">
+              <span className="font-medium">Add equipment</span>
+              <input
+                value={equipmentSearch}
+                onChange={(event) => setEquipmentSearch(event.target.value)}
+                placeholder="Search equipment name or ID…"
+                className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-900"
+              />
+            </label>
+            <div className="max-h-48 space-y-1 overflow-y-auto">
+              {equipmentOptions.map((item) => {
+                const availability = getEquipmentAvailabilityExcludingLoan(
+                  item.id,
+                  allLoans,
+                  now,
+                  loan.id
+                );
+                const unavailable = availability !== "available";
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={busy || unavailable}
+                    onClick={() => addEquipment(item)}
+                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900"
+                  >
+                    <span>
+                      {item.name} ({item.equipmentId})
+                    </span>
+                    <span className="shrink-0 text-xs text-zinc-500">
+                      {unavailable ? "In another loan" : "Add"}
+                    </span>
+                  </button>
+                );
+              })}
+              {!equipmentOptions.length && (
+                <p className="py-2 text-sm text-zinc-500">
+                  No additional equipment found.
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={busy || !editedEquipment.length}
+                onClick={() =>
+                  run(() => updateLoanEquipment(loan.id, editedEquipment))
+                }
+                className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
+              >
+                {busy ? "Saving…" : "Save equipment"}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setEditedEquipment(loan.equipment);
+                  setEditingEquipment(false);
+                  setError("");
+                }}
+                className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium disabled:opacity-40 dark:border-zinc-600"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {isAdmin && status === "pending" && (
           <div className="mt-4 space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">

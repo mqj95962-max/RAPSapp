@@ -56,6 +56,19 @@ export function getEquipmentAvailability(
   return "available";
 }
 
+export function getEquipmentAvailabilityExcludingLoan(
+  equipmentDocId: string,
+  loans: Loan[],
+  now: Date,
+  excludedLoanId: string
+): EquipmentAvailability {
+  return getEquipmentAvailability(
+    equipmentDocId,
+    loans.filter((loan) => loan.id !== excludedLoanId),
+    now
+  );
+}
+
 export function activeLoansForEquipment(
   equipmentDocId: string,
   loans: Loan[],

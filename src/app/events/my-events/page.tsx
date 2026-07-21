@@ -184,10 +184,13 @@ function EventDetailModal({
   onUpdated: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [error, setError] = useState("");
   const overdue = isPhotoSubmissionOverdue(event, now);
 
   const submitPhotos = async () => {
     setBusy(true);
+    setError("");
     try {
       await markPhotosSubmitted(event.id);
       const notifyError = await sendNotification("photos_submitted", {
@@ -196,23 +199,25 @@ function EventDetailModal({
       if (notifyError) console.warn("[notifications]", notifyError);
       onUpdated();
       onClose();
-    } finally {
+    } catch (err) {
+      console.error("[my-events] submit photos failed", err);
+      setError("Could not submit photos. Please try again.");
       setBusy(false);
     }
   };
 
   const remove = async () => {
-    const message = event.confirmed
-      ? "This event is confirmed and counts toward your hours. Delete it anyway?"
-      : "Delete this event? This cannot be undone.";
-    if (!window.confirm(message)) return;
     setBusy(true);
+    setError("");
     try {
       await deleteEvent(event.id);
       onUpdated();
       onClose();
-    } finally {
+    } catch (err) {
+      console.error("[my-events] delete event failed", err);
+      setError("Could not delete this event. Please try again.");
       setBusy(false);
+      setConfirmingDelete(false);
     }
   };
 
@@ -242,6 +247,7 @@ function EventDetailModal({
         {event.confirmed && (
           <p className="mt-2 text-sm text-emerald-700">Photos confirmed</p>
         )}
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
         {!event.photosSubmitted && (
           <button
             type="button"
@@ -252,14 +258,42 @@ function EventDetailModal({
             Photos submitted
           </button>
         )}
-        <button
-          type="button"
-          disabled={busy}
-          onClick={remove}
-          className="mt-3 w-full rounded-lg border border-red-200 py-2 text-sm font-medium text-red-700 disabled:opacity-40"
-        >
-          Delete event
-        </button>
+        {confirmingDelete ? (
+          <div className="mt-3 rounded-lg border border-red-200 p-3">
+            <p className="text-sm text-red-700">
+              {event.confirmed
+                ? "This event is confirmed and counts toward your hours. Delete it anyway?"
+                : "Delete this event? This cannot be undone."}
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={remove}
+                className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-medium text-white disabled:opacity-40"
+              >
+                {busy ? "Deleting…" : "Delete"}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setConfirmingDelete(false)}
+                className="flex-1 rounded-lg border border-zinc-300 py-2 text-sm font-medium disabled:opacity-40 dark:border-zinc-600"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirmingDelete(true)}
+            className="mt-3 w-full rounded-lg border border-red-200 py-2 text-sm font-medium text-red-700 disabled:opacity-40"
+          >
+            Delete event
+          </button>
+        )}
         <button type="button" onClick={onClose} className="mt-3 w-full text-sm text-zinc-500">
           Close
         </button>

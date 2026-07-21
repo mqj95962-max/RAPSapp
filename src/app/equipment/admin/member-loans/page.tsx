@@ -8,7 +8,7 @@ import { LoanBadge } from "@/components/equipment/LoanBadge";
 import { LoanDetailModal } from "@/components/equipment/LoanDetailModal";
 import { useServerTime } from "@/context/ServerTimeContext";
 import { LiveSyncBanner } from "@/components/LiveSyncBanner";
-import { useAllLoansLive } from "@/hooks/useLiveData";
+import { useAllLoansLive, useEquipmentLive } from "@/hooks/useLiveData";
 import { effectiveLoanStatus } from "@/lib/loans";
 import type { Loan, LoanStatus } from "@/lib/types";
 
@@ -30,6 +30,7 @@ export default function MemberLoansPage() {
 function MemberLoansContent() {
   const { now } = useServerTime();
   const { loans: allLoans, loading, error } = useAllLoansLive();
+  const { equipment, error: equipmentError } = useEquipmentLive();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Loan | null>(null);
 
@@ -55,7 +56,7 @@ function MemberLoansContent() {
       <p className="text-sm text-zinc-500">
         Loan requests from all members update live — no refresh needed.
       </p>
-      <LiveSyncBanner error={error} />
+      <LiveSyncBanner error={error || equipmentError} />
       <SearchBar
         value={search}
         onChange={setSearch}
@@ -96,6 +97,8 @@ function MemberLoansContent() {
           loan={selected}
           now={now}
           isAdmin
+          allEquipment={equipment}
+          allLoans={allLoans}
           onClose={() => setSelected(null)}
           onUpdated={() => setSelected(null)}
         />

@@ -220,6 +220,10 @@ function AdminFormalEventsContent() {
           signupCount={signupCounts.get(selectedFormal.id) ?? 0}
           onClose={() => setSelectedFormal(null)}
           onUpdated={load}
+          onSelectSignup={(signup) => {
+            setSelectedFormal(null);
+            setSelectedSignup(signup);
+          }}
         />
       )}
       {selectedSignup && profile && (
@@ -404,11 +408,13 @@ function AdminFormalEventDetailModal({
   signupCount,
   onClose,
   onUpdated,
+  onSelectSignup,
 }: {
   event: FormalEvent;
   signupCount: number;
   onClose: () => void;
   onUpdated: () => void;
+  onSelectSignup: (signup: ClubEvent) => void;
 }) {
   const [signups, setSignups] = useState<ClubEvent[]>([]);
   const [busy, setBusy] = useState(false);
@@ -455,14 +461,24 @@ function AdminFormalEventDetailModal({
           {signups.length ? (
             <ul className="mt-2 space-y-1">
               {signups.map((signup) => (
-                <li
-                  key={signup.id}
-                  className="rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700"
-                >
-                  {signup.userName}
-                  {signup.photosSubmitted && (
-                    <span className="ml-2 text-xs text-blue-600">Photos submitted</span>
-                  )}
+                <li key={signup.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectSignup(signup)}
+                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 text-left text-sm dark:border-zinc-700"
+                  >
+                    <span>
+                      {signup.userName}
+                      {signup.photosSubmitted && (
+                        <span className="ml-2 text-xs text-blue-600">
+                          Photos submitted
+                        </span>
+                      )}
+                    </span>
+                    <span className="shrink-0 text-xs font-medium text-red-700">
+                      Manage / remove
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>

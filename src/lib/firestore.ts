@@ -533,6 +533,16 @@ export async function createLoanRequest(input: {
   return ref.id;
 }
 
+export async function updateLoanEquipment(
+  loanId: string,
+  equipment: LoanEquipmentItem[]
+): Promise<void> {
+  if (!equipment.length) {
+    throw new Error("A loan must contain at least one equipment item.");
+  }
+  await updateDoc(doc(getDb(), "loans", loanId), { equipment });
+}
+
 export async function approveLoan(
   loanId: string,
   pickupDate: string,
