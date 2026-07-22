@@ -11,6 +11,7 @@ import { useServerTime } from "@/context/ServerTimeContext";
 import { groupEventsByDate, groupFormalEventsByDate } from "@/lib/events";
 import {
   countSignupsByFormalEvent,
+  formatFormalEventSchedule,
   formatSignupCount,
   groupSignupsByFormalEvent,
   isFormalEventCompleted,
@@ -337,7 +338,7 @@ function FormalEventCoverageCard({
         <div>
           <p className="font-medium">{formal.title}</p>
           <p className="text-sm text-zinc-500">
-            {formal.eventTime} · {formal.durationHours}h ·{" "}
+            {formatFormalEventSchedule(formal)} ·{" "}
             {formatSignupCount(signupCount, formal.maxSignups)}
           </p>
           {completed && formal.completedAt && (

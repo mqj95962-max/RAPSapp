@@ -645,7 +645,8 @@ function addFormalEventsSheet(
   const headers = [
     "Title",
     "Event date",
-    "Event time",
+    "Start time",
+    "End time",
     "Duration (hours)",
     "Description",
     "Max signups",
@@ -676,6 +677,7 @@ function addFormalEventsSheet(
       formal.title,
       formal.eventDate,
       formal.eventTime,
+      formal.endTime,
       formal.durationHours,
       formal.description,
       formal.maxSignups ?? "Unlimited",

@@ -8,6 +8,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { useAuth } from "@/context/AuthContext";
 import {
   countSignupsByFormalEvent,
+  formatFormalEventSchedule,
   formatSignupCount,
   isFormalEventCompleted,
   isFormalEventFull,
@@ -86,7 +87,7 @@ export default function FormalEventsPage() {
                   <li key={event.id}>
                     <FormalEventBadge
                       title={event.title}
-                      subtitle={`${event.eventTime} · ${event.durationHours}h`}
+                      subtitle={formatFormalEventSchedule(event)}
                       meta={formatSignupCount(count, event.maxSignups)}
                       status={
                         signedUp ? "Signed up" : full ? "Full" : undefined
@@ -164,7 +165,7 @@ function MemberFormalEventDetailModal({
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 dark:bg-zinc-900">
         <h2 className="text-lg font-semibold">{event.title}</h2>
         <p className="mt-2 text-sm text-zinc-500">
-          {formatDate(event.eventDate)} at {event.eventTime} · {event.durationHours}h
+          {formatDate(event.eventDate)} · {formatFormalEventSchedule(event)}
         </p>
         <p className="mt-3 text-sm">{event.description || "No description."}</p>
         <p className="mt-3 text-sm font-medium">

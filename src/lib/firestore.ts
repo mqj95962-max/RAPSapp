@@ -30,7 +30,11 @@ import type {
   UserProfile,
 } from "./types";
 import { defaultRoles, normalizeRoles } from "./roles";
-import { createFormalSignupError } from "./formalEvents";
+import {
+  createFormalSignupError,
+  durationHoursFromTimes,
+  resolveFormalEndTime,
+} from "./formalEvents";
 import { computeReturnDate } from "./time";
 
 function mapEquipment(id: string, data: DocumentData): Equipment {
@@ -92,12 +96,19 @@ function mapEvent(id: string, data: DocumentData): ClubEvent {
 }
 
 function mapFormalEvent(id: string, data: DocumentData): FormalEvent {
+  const eventTime = data.eventTime ?? "";
+  const durationHours = data.durationHours ?? 2;
   return {
     id,
     title: data.title ?? "",
     eventDate: data.eventDate ?? "",
-    eventTime: data.eventTime ?? "",
-    durationHours: data.durationHours ?? 2,
+    eventTime,
+    endTime: resolveFormalEndTime({
+      eventTime,
+      endTime: data.endTime ?? null,
+      durationHours,
+    }),
+    durationHours,
     description: data.description ?? "",
     maxSignups: data.maxSignups ?? null,
     signupCount: data.signupCount ?? 0,
@@ -718,20 +729,103 @@ export async function createFormalEvent(input: {
   title: string;
   eventDate: string;
   eventTime: string;
+  endTime: string;
   durationHours: number;
   description: string;
   maxSignups: number | null;
   createdBy: string;
 }): Promise<string> {
   const now = Date.now();
+  const duration =
+    durationHoursFromTimes(input.eventTime, input.endTime) ?? input.durationHours;
   const ref = await addDoc(collection(getDb(), "formalEvents"), {
-    ...input,
+    title: input.title,
+    eventDate: input.eventDate,
+    eventTime: input.eventTime,
+    endTime: input.endTime,
+    durationHours: duration,
+    description: input.description,
+    maxSignups: input.maxSignups,
+    createdBy: input.createdBy,
     signupCount: 0,
     createdAt: now,
     completedAt: null,
     completedBy: null,
   });
   return ref.id;
+}
+
+export async function updateFormalEvent(
+  formalEventId: string,
+  input: {
+    title: string;
+    eventDate: string;
+    eventTime: string;
+    endTime: string;
+    description: string;
+    maxSignups: number | null;
+  }
+): Promise<void> {
+  const db = getDb();
+  const duration = durationHoursFromTimes(input.eventTime, input.endTime);
+  if (duration == null) {
+    throw new Error("Invalid start or end time.");
+  }
+
+  const formalRef = doc(db, "formalEvents", formalEventId);
+  const formalSnap = await getDoc(formalRef);
+  if (!formalSnap.exists()) {
+    throw new Error("Formal event not found.");
+  }
+
+  const currentCount = (formalSnap.data().signupCount as number) ?? 0;
+  if (input.maxSignups != null && input.maxSignups < currentCount) {
+    throw new Error(
+      `Max signups cannot be lower than the current signup count (${currentCount}).`
+    );
+  }
+
+  const eventsSnap = await getDocs(
+    query(collection(db, "events"), where("formalEventId", "==", formalEventId))
+  );
+
+  const UPDATE_BATCH_SIZE = 450;
+  const eventDocs = eventsSnap.docs;
+  for (let i = 0; i < eventDocs.length; i += UPDATE_BATCH_SIZE) {
+    const batch = writeBatch(db);
+    if (i === 0) {
+      batch.update(formalRef, {
+        title: input.title,
+        eventDate: input.eventDate,
+        eventTime: input.eventTime,
+        endTime: input.endTime,
+        durationHours: duration,
+        description: input.description,
+        maxSignups: input.maxSignups,
+      });
+    }
+    for (const eventDoc of eventDocs.slice(i, i + UPDATE_BATCH_SIZE)) {
+      batch.update(eventDoc.ref, {
+        title: input.title,
+        eventDate: input.eventDate,
+        eventTime: input.eventTime,
+        durationHours: duration,
+      });
+    }
+    await batch.commit();
+  }
+
+  if (eventDocs.length === 0) {
+    await updateDoc(formalRef, {
+      title: input.title,
+      eventDate: input.eventDate,
+      eventTime: input.eventTime,
+      endTime: input.endTime,
+      durationHours: duration,
+      description: input.description,
+      maxSignups: input.maxSignups,
+    });
+  }
 }
 
 export async function deleteFormalEvent(formalEventId: string): Promise<void> {

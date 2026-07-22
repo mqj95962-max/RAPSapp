@@ -12,8 +12,11 @@ import { useServerTime } from "@/context/ServerTimeContext";
 import { groupEventsByDate, groupFormalEventsByDate } from "@/lib/events";
 import {
   countSignupsByFormalEvent,
+  durationHoursFromTimes,
+  formatFormalEventSchedule,
   formatSignupCount,
   isFormalEventFull,
+  resolveFormalEndTime,
 } from "@/lib/formalEvents";
 import {
   createFormalEvent,
@@ -21,6 +24,7 @@ import {
   fetchAllEvents,
   fetchFormalEventSignups,
   fetchFormalEvents,
+  updateFormalEvent,
 } from "@/lib/firestore";
 import { formatDate } from "@/lib/time";
 import type { ClubEvent, FormalEvent } from "@/lib/types";
@@ -53,6 +57,7 @@ function AdminFormalEventsContent() {
     ]);
     setFormalEvents(events);
     setAllSignups(memberEvents.filter((e) => e.formalEventId != null));
+    return events;
   }, []);
 
   useEffect(() => {
@@ -145,7 +150,7 @@ function AdminFormalEventsContent() {
                       <li key={event.id}>
                         <FormalEventBadge
                           title={event.title}
-                          subtitle={`${event.eventTime} · ${event.durationHours}h`}
+                          subtitle={formatFormalEventSchedule(event)}
                           meta={formatSignupCount(count, event.maxSignups)}
                           status={
                             pending > 0
@@ -219,7 +224,12 @@ function AdminFormalEventsContent() {
           event={selectedFormal}
           signupCount={signupCounts.get(selectedFormal.id) ?? 0}
           onClose={() => setSelectedFormal(null)}
-          onUpdated={load}
+          onUpdated={async () => {
+            const events = await load();
+            const updated = events.find((e) => e.id === selectedFormal.id);
+            if (updated) setSelectedFormal(updated);
+            else setSelectedFormal(null);
+          }}
           onSelectSignup={(signup) => {
             setSelectedFormal(null);
             setSelectedSignup(signup);
@@ -279,18 +289,21 @@ function AddFormalEventModal({
   const [title, setTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
-  const [durationHours, setDurationHours] = useState(2);
+  const [endTime, setEndTime] = useState("");
   const [description, setDescription] = useState("");
   const [noMaxSignups, setNoMaxSignups] = useState(false);
   const [maxSignups, setMaxSignups] = useState(10);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const canSubmit = Boolean(title.trim() && eventDate && eventTime && !saving);
+  const durationHours = durationHoursFromTimes(eventTime, endTime);
+  const canSubmit = Boolean(
+    title.trim() && eventDate && eventTime && endTime && durationHours != null && !saving
+  );
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || durationHours == null) return;
     setSaving(true);
     setError("");
     try {
@@ -298,6 +311,7 @@ function AddFormalEventModal({
         title: title.trim(),
         eventDate,
         eventTime,
+        endTime,
         durationHours,
         description: description.trim(),
         maxSignups: noMaxSignups ? null : maxSignups,
@@ -335,27 +349,33 @@ function AddFormalEventModal({
               required
             />
           </label>
-          <label className="block text-sm">
-            <span className="font-medium">Time</span>
-            <input
-              type="time"
-              className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
-              value={eventTime}
-              onChange={(e) => setEventTime(e.target.value)}
-              required
-            />
-          </label>
-          <label className="block text-sm">
-            <span className="font-medium">Duration (hours)</span>
-            <input
-              type="number"
-              min={0.5}
-              step={0.5}
-              className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
-              value={durationHours}
-              onChange={(e) => setDurationHours(Number(e.target.value))}
-            />
-          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-sm">
+              <span className="font-medium">Start time</span>
+              <input
+                type="time"
+                className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                value={eventTime}
+                onChange={(e) => setEventTime(e.target.value)}
+                required
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="font-medium">End time</span>
+              <input
+                type="time"
+                className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                required
+              />
+            </label>
+          </div>
+          <p className="text-xs text-zinc-500">
+            {durationHours != null
+              ? `Coverage duration: ${durationHours}h`
+              : "Enter start and end times to calculate duration."}
+          </p>
           <label className="block text-sm">
             <span className="font-medium">Description</span>
             <textarea
@@ -418,12 +438,63 @@ function AdminFormalEventDetailModal({
 }) {
   const [signups, setSignups] = useState<ClubEvent[]>([]);
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(event.title);
+  const [eventDate, setEventDate] = useState(event.eventDate);
+  const [eventTime, setEventTime] = useState(event.eventTime);
+  const [endTime, setEndTime] = useState(resolveFormalEndTime(event));
+  const [description, setDescription] = useState(event.description);
+  const [noMaxSignups, setNoMaxSignups] = useState(event.maxSignups == null);
+  const [maxSignups, setMaxSignups] = useState(event.maxSignups ?? 10);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     void fetchFormalEventSignups(event.id).then((list) =>
       setSignups(list.filter((e) => !e.confirmed))
     );
   }, [event.id]);
+
+  useEffect(() => {
+    setTitle(event.title);
+    setEventDate(event.eventDate);
+    setEventTime(event.eventTime);
+    setEndTime(resolveFormalEndTime(event));
+    setDescription(event.description);
+    setNoMaxSignups(event.maxSignups == null);
+    setMaxSignups(event.maxSignups ?? 10);
+    setError("");
+    setEditing(false);
+  }, [event]);
+
+  const durationHours = durationHoursFromTimes(eventTime, endTime);
+  const canSave = Boolean(
+    title.trim() && eventDate && eventTime && endTime && durationHours != null && !busy
+  );
+
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!canSave || durationHours == null) return;
+    setBusy(true);
+    setError("");
+    try {
+      await updateFormalEvent(event.id, {
+        title: title.trim(),
+        eventDate,
+        eventTime,
+        endTime,
+        description: description.trim(),
+        maxSignups: noMaxSignups ? null : maxSignups,
+      });
+      setEditing(false);
+      onUpdated();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not update formal event."
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const remove = async () => {
     const message =
@@ -432,11 +503,13 @@ function AdminFormalEventDetailModal({
         : "Delete this formal event?";
     if (!window.confirm(message)) return;
     setBusy(true);
+    setError("");
     try {
       await deleteFormalEvent(event.id);
       onUpdated();
       onClose();
-    } finally {
+    } catch {
+      setError("Could not delete formal event.");
       setBusy(false);
     }
   };
@@ -444,59 +517,189 @@ function AdminFormalEventDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 dark:bg-zinc-900">
-        <h2 className="text-lg font-semibold">{event.title}</h2>
-        <p className="mt-2 text-sm text-zinc-500">
-          {formatDate(event.eventDate)} at {event.eventTime} · {event.durationHours}h
-        </p>
-        <p className="mt-3 text-sm">{event.description || "No description."}</p>
-        <p className="mt-3 text-sm font-medium">
-          {formatSignupCount(signupCount, event.maxSignups)}
-          {event.maxSignups == null && " (unlimited)"}
-        </p>
-        <div className="mt-4">
-          <h3 className="text-sm font-semibold">Open signups</h3>
-          <p className="text-xs text-zinc-500">
-            Confirmed members appear under Confirmed signups.
-          </p>
-          {signups.length ? (
-            <ul className="mt-2 space-y-1">
-              {signups.map((signup) => (
-                <li key={signup.id}>
-                  <button
-                    type="button"
-                    onClick={() => onSelectSignup(signup)}
-                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 text-left text-sm dark:border-zinc-700"
-                  >
-                    <span>
-                      {signup.userName}
-                      {signup.photosSubmitted && (
-                        <span className="ml-2 text-xs text-blue-600">
-                          Photos submitted
+        {editing ? (
+          <>
+            <h2 className="text-lg font-semibold">Edit formal event</h2>
+            <form onSubmit={save} className="mt-4 space-y-3">
+              <label className="block text-sm">
+                <span className="font-medium">Event title</span>
+                <input
+                  className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium">Date</span>
+                <input
+                  type="date"
+                  className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  required
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-sm">
+                  <span className="font-medium">Start time</span>
+                  <input
+                    type="time"
+                    className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                    value={eventTime}
+                    onChange={(e) => setEventTime(e.target.value)}
+                    required
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="font-medium">End time</span>
+                  <input
+                    type="time"
+                    className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    required
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-zinc-500">
+                {durationHours != null
+                  ? `Coverage duration: ${durationHours}h`
+                  : "Enter start and end times to calculate duration."}
+              </p>
+              <label className="block text-sm">
+                <span className="font-medium">Description</span>
+                <textarea
+                  className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                  rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={noMaxSignups}
+                  onChange={(e) => setNoMaxSignups(e.target.checked)}
+                />
+                No max signups
+              </label>
+              {!noMaxSignups && (
+                <label className="block text-sm">
+                  <span className="font-medium">Max signups</span>
+                  <input
+                    type="number"
+                    min={Math.max(1, signupCount)}
+                    step={1}
+                    className="mt-1 w-full rounded-lg border px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                    value={maxSignups}
+                    onChange={(e) => setMaxSignups(Number(e.target.value))}
+                  />
+                  {signupCount > 0 && (
+                    <span className="mt-1 block text-xs text-zinc-500">
+                      Must be at least the current signup count ({signupCount}).
+                    </span>
+                  )}
+                </label>
+              )}
+              <p className="text-xs text-zinc-500">
+                Saving updates this formal event and any linked member signups
+                (title, date, time, and hours).
+              </p>
+              {error && <p className="text-sm text-red-600">{error}</p>}
+              <button
+                type="submit"
+                disabled={!canSave}
+                className="w-full rounded-lg bg-zinc-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
+              >
+                {busy ? "Saving…" : "Save changes"}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setTitle(event.title);
+                  setEventDate(event.eventDate);
+                  setEventTime(event.eventTime);
+                  setEndTime(resolveFormalEndTime(event));
+                  setDescription(event.description);
+                  setNoMaxSignups(event.maxSignups == null);
+                  setMaxSignups(event.maxSignups ?? 10);
+                  setError("");
+                  setEditing(false);
+                }}
+                className="w-full text-sm text-zinc-500 disabled:opacity-40"
+              >
+                Cancel edit
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            <h2 className="text-lg font-semibold">{event.title}</h2>
+            <p className="mt-2 text-sm text-zinc-500">
+              {formatDate(event.eventDate)} · {formatFormalEventSchedule(event)}
+            </p>
+            <p className="mt-3 text-sm">{event.description || "No description."}</p>
+            <p className="mt-3 text-sm font-medium">
+              {formatSignupCount(signupCount, event.maxSignups)}
+              {event.maxSignups == null && " (unlimited)"}
+            </p>
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold">Open signups</h3>
+              <p className="text-xs text-zinc-500">
+                Confirmed members appear under Confirmed signups.
+              </p>
+              {signups.length ? (
+                <ul className="mt-2 space-y-1">
+                  {signups.map((signup) => (
+                    <li key={signup.id}>
+                      <button
+                        type="button"
+                        onClick={() => onSelectSignup(signup)}
+                        className="flex w-full items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 text-left text-sm dark:border-zinc-700"
+                      >
+                        <span>
+                          {signup.userName}
+                          {signup.photosSubmitted && (
+                            <span className="ml-2 text-xs text-blue-600">
+                              Photos submitted
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </span>
-                    <span className="shrink-0 text-xs font-medium text-red-700">
-                      Manage / remove
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-zinc-500">No open signups.</p>
-          )}
-        </div>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={remove}
-          className="mt-4 w-full rounded-lg border border-red-200 py-2 text-sm font-medium text-red-700 disabled:opacity-40"
-        >
-          Delete formal event
-        </button>
-        <button type="button" onClick={onClose} className="mt-3 w-full text-sm text-zinc-500">
-          Close
-        </button>
+                        <span className="shrink-0 text-xs font-medium text-red-700">
+                          Manage / remove
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-zinc-500">No open signups.</p>
+              )}
+            </div>
+            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setEditing(true)}
+              className="mt-4 w-full rounded-lg border border-zinc-300 py-2 text-sm font-medium disabled:opacity-40 dark:border-zinc-600"
+            >
+              Edit event details
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={remove}
+              className="mt-3 w-full rounded-lg border border-red-200 py-2 text-sm font-medium text-red-700 disabled:opacity-40"
+            >
+              Delete formal event
+            </button>
+            <button type="button" onClick={onClose} className="mt-3 w-full text-sm text-zinc-500">
+              Close
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

@@ -93,7 +93,10 @@ export interface FormalEvent {
   id: string;
   title: string;
   eventDate: string;
+  /** Start time (HH:mm). */
   eventTime: string;
+  /** End time (HH:mm). Derived from start + duration for older events. */
+  endTime: string;
   durationHours: number;
   description: string;
   /** null = unlimited signups */
